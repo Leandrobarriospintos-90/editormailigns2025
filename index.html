@@ -35,11 +35,12 @@
             color: #1c1e21;
         }
         
-        .header-controls { display: flex; align-items: center; gap: 10px; }
-        .width-control { display: flex; align-items: center; gap: 10px; margin-right: 10px;}
-        .width-control label { font-weight: 600; font-size: 0.9rem; }
-        .width-control input[type="range"] { width: 120px; }
-        .width-control #width-value { font-weight: 600; min-width: 40px; }
+        .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .control-group { display: flex; align-items: center; gap: 10px; }
+        .control-group label { font-weight: 600; font-size: 0.9rem; }
+        #width-slider { width: 120px; }
+        #width-value { font-weight: 600; min-width: 40px; }
+        #bg-color-picker { width: 40px; height: 30px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; padding: 2px; background-color: white; }
         .header-controls button { border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
         .style-button { background-color: #e4e6eb; color: #050505; }
         .style-button:hover { background-color: #d8dbdf; }
@@ -98,10 +99,14 @@
     <header>
         <h1>Editor de Mailings</h1>
         <div class="header-controls">
-            <div class="width-control">
+            <div class="control-group">
                 <label for="width-slider">Ancho:</label>
                 <input type="range" id="width-slider" min="600" max="800" step="10" value="600">
                 <span id="width-value">600px</span>
+            </div>
+            <div class="control-group">
+                <label for="bg-color-picker">Fondo:</label>
+                <input type="color" id="bg-color-picker" value="#f0f2f5">
             </div>
             <button class="style-button" id="import-html-btn">Importar HTML</button>
             <input type="file" id="html-importer" accept=".html" style="display: none;">
@@ -120,7 +125,7 @@
             <div class="block" draggable="true" data-type="columns">Columnas</div>
         </aside>
 
-        <main class="canvas-area">
+        <main class="canvas-area" id="canvas-area">
             <div class="canvas" id="canvas">
                 <div class="placeholder">Arrastra un bloque aquí para comenzar</div>
             </div>
@@ -137,6 +142,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('canvas');
+            const canvasArea = document.getElementById('canvas-area');
             const blocks = document.querySelectorAll('.block');
             const propertiesPanel = document.getElementById('properties-content');
             const cleanBgBtn = document.getElementById('clean-bg-btn');
@@ -144,6 +150,7 @@
             const widthValue = document.getElementById('width-value');
             const importBtn = document.getElementById('import-html-btn');
             const importInput = document.getElementById('html-importer');
+            const bgColorPicker = document.getElementById('bg-color-picker');
             
             let selectedElement = null;
 
@@ -158,6 +165,10 @@
                 widthValue.textContent = `${newWidth}px`;
                 canvas.style.maxWidth = `${newWidth}px`;
             });
+
+            bgColorPicker.addEventListener('input', e => {
+                canvasArea.style.backgroundColor = e.target.value;
+            });
             
             importBtn.addEventListener('click', () => importInput.click());
             importInput.addEventListener('change', handleHtmlImport);
@@ -168,7 +179,6 @@
                 block.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', block.dataset.type));
             });
             
-            // Reordering existing elements
             canvas.addEventListener('dragover', e => {
                 e.preventDefault();
                 const dragging = document.querySelector('.canvas-element.dragging');
@@ -182,17 +192,12 @@
                 }
             });
 
-            // Dropping NEW elements from the panel
             canvas.addEventListener('drop', e => {
                 e.preventDefault();
-                e.stopPropagation(); // BUG FIX: Prevent event from bubbling to other listeners (like body)
-                
-                // This check ensures we only handle drops for NEW elements, not reorders.
+                e.stopPropagation();
                 if (document.querySelector('.canvas-element.dragging')) return;
-                
                 const type = e.dataTransfer.getData('text/plain');
                 if (!type) return;
-
                 const placeholder = canvas.querySelector('.placeholder');
                 if (placeholder) placeholder.remove();
                 createElement({type: type}, canvas);
@@ -494,7 +499,8 @@
                 const isCleanMode = document.body.classList.contains('clean-mode');
                 const finalWidth = widthSlider.value;
                 const htmlContent = generateHtmlForContainer(canvas);
-                const finalHtml = getEmailTemplate(htmlContent, isCleanMode, finalWidth);
+                const finalBgColor = bgColorPicker.value;
+                const finalHtml = getEmailTemplate(htmlContent, isCleanMode, finalWidth, finalBgColor);
                 const blob = new Blob([finalHtml], { type: 'text/html' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
@@ -562,9 +568,9 @@
                 return html;
             }
 
-            function getEmailTemplate(content, isClean, maxWidth) {
-                const bgColor = isClean ? '#ffffff' : '#f0f2f5';
-                return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Tu Mailing</title><style>body{margin:0;padding:0;background-color:${bgColor};}table{border-spacing:0;}td{padding:0;}img{border:0;}</style></head><body><center style="width:100%;table-layout:fixed;background-color:${bgColor};padding:20px 0;"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:${maxWidth}px;background-color:#ffffff;${isClean ? '' : 'box-shadow:0 0 10px rgba(0,0,0,0.1);'}"><tbody>${content}</tbody></table></center></body></html>`;
+            function getEmailTemplate(content, isClean, maxWidth, bgColor) {
+                const finalBgColor = isClean ? '#ffffff' : (bgColor || '#f0f2f5');
+                return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Tu Mailing</title><style>body{margin:0;padding:0;background-color:${finalBgColor};}table{border-spacing:0;}td{padding:0;}img{border:0;}</style></head><body><center style="width:100%;table-layout:fixed;background-color:${finalBgColor};padding:20px 0;"><table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:${maxWidth}px;background-color:#ffffff;${isClean ? '' : 'box-shadow:0 0 10px rgba(0,0,0,0.1);'}"><tbody>${content}</tbody></table></center></body></html>`;
             }
             
             // --- HTML Import Logic ---
@@ -591,9 +597,13 @@
                 const doc = parser.parseFromString(htmlString, 'text/html');
                 const mainTableBody = doc.querySelector('body > center > table > tbody');
                 
-                if (!mainTableBody) {
-                    throw new Error("Invalid HTML structure: Main table not found.");
-                }
+                if (!mainTableBody) throw new Error("Invalid HTML structure: Main table not found.");
+
+                // Set global styles from imported file
+                const centerTag = doc.querySelector('body > center');
+                const importedBgColor = centerTag ? centerTag.style.backgroundColor : '#f0f2f5';
+                bgColorPicker.value = importedBgColor;
+                canvasArea.style.backgroundColor = importedBgColor;
 
                 canvas.innerHTML = '';
                 clearPropertiesPanel();
@@ -615,18 +625,15 @@
                 const linkHref = (potentialLink && potentialLink.parentElement === td && !td.querySelector('a[style*="background-color"]')) ? potentialLink.href : '';
                 const align = td.style.textAlign || 'left';
 
-                // Text
                 if (td.style.lineHeight) {
                     return { type: 'text', innerHTML: contentNode.innerHTML, align: align, lineHeight: td.style.lineHeight, linkHref: linkHref };
                 }
 
-                // Image
                 const img = contentNode.querySelector('img');
                 if (img) {
                     return { type: 'image', src: img.src, alt: img.alt, linkHref: linkHref, align: align, width: parseInt(img.style.width, 10) || 100 };
                 }
 
-                // Button
                 const buttonLink = td.querySelector('a[style*="background-color"]');
                 if (buttonLink) {
                     return {
@@ -638,7 +645,6 @@
                     };
                 }
 
-                // Columns
                 const columnsTable = contentNode.querySelector(':scope > table');
                 if (columnsTable && columnsTable.querySelector('td[width]')) {
                      const cols = columnsTable.querySelectorAll(':scope > tbody > tr > td');
@@ -649,7 +655,6 @@
                      return { type: 'columns', columns: cols.length, children: children, linkHref: linkHref };
                 }
                 
-                // Separator
                  if (td.style.fontSize === '0px') {
                     const borderTd = contentNode.querySelector('td[style*="border-bottom"]');
                     const borderStyleRaw = borderTd ? borderTd.style.borderBottom : '2px none transparent';
