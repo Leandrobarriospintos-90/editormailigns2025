@@ -226,6 +226,12 @@
                 wrapper.dataset.linkHref = config.linkHref || '';
                 wrapper.dataset.align = config.align || (config.type === 'button' || config.type === 'image' ? 'center' : 'left');
                 wrapper.style.textAlign = wrapper.dataset.align;
+
+                // New margin properties
+                wrapper.dataset.marginTop = config.marginTop || '10';
+                wrapper.dataset.marginBottom = config.marginBottom || '10';
+                wrapper.style.paddingTop = `${wrapper.dataset.marginTop}px`;
+                wrapper.style.paddingBottom = `${wrapper.dataset.marginBottom}px`;
                 
                 wrapper.addEventListener('dragstart', e => { e.stopPropagation(); setTimeout(() => wrapper.classList.add('dragging'), 0); });
                 wrapper.addEventListener('dragend', e => { e.stopPropagation(); wrapper.classList.remove('dragging'); });
@@ -258,12 +264,14 @@
                     case 'separator':
                         wrapper.dataset.color = config.color || '#cccccc';
                         wrapper.dataset.borderStyle = config.borderStyle || 'solid';
+                        // Separator specific padding values are kept separate from general margins
                         wrapper.dataset.paddingTop = config.paddingTop || '10';
                         wrapper.dataset.paddingBottom = config.paddingBottom || '10';
-                        wrapper.style.paddingTop = `${wrapper.dataset.paddingTop}px`;
-                        wrapper.style.paddingBottom = `${wrapper.dataset.paddingBottom}px`;
                         content.style.borderBottomStyle = wrapper.dataset.borderStyle;
                         content.style.borderBottomColor = wrapper.dataset.color;
+                        // The actual padding for the separator is applied to the content, not the wrapper directly
+                        content.style.paddingTop = `${wrapper.dataset.paddingTop}px`;
+                        content.style.paddingBottom = `${wrapper.dataset.paddingBottom}px`;
                         break;
                     case 'columns':
                         wrapper.dataset.columns = config.columns || '2';
@@ -285,7 +293,7 @@
                         parentContainer.innerHTML = '<div class="placeholder">Arrastra aquí</div>';
                     }
                     if (canvas.children.length === 0) {
-                         canvas.innerHTML = '<div class="placeholder">Arrastra un bloque aquí para comenzar</div>';
+                            canvas.innerHTML = '<div class="placeholder">Arrastra un bloque aquí para comenzar</div>';
                     }
                 });
                 wrapper.appendChild(deleteBtn);
@@ -358,21 +366,21 @@
                 switch (type) {
                     case 'text':
                         propsHtml = `
-                             <div class="prop-group">
-                                <label for="text-line-height">Interlineado</label>
-                                <input type="number" id="text-line-height" step="0.1" min="1" value="${selectedElement.dataset.lineHeight}">
-                            </div>
-                            <div class="prop-group"><label for="text-content">Contenido (HTML)</label><textarea id="text-content">${selectedElement.querySelector('.content').innerHTML}</textarea></div>
+                                <div class="prop-group">
+                                    <label for="text-line-height">Interlineado</label>
+                                    <input type="number" id="text-line-height" step="0.1" min="1" value="${selectedElement.dataset.lineHeight}">
+                                </div>
+                                <div class="prop-group"><label for="text-content">Contenido (HTML)</label><textarea id="text-content">${selectedElement.querySelector('.content').innerHTML}</textarea></div>
                         `;
                         break;
                     case 'image':
                         propsHtml = `
-                            <div class="prop-group">
-                                <label for="img-width">Ancho: <span id="img-width-value">${selectedElement.dataset.width}%</span></label>
-                                <input type="range" id="img-width" min="10" max="100" value="${selectedElement.dataset.width}">
-                            </div>
-                            <div class="prop-group"><label for="img-src">URL de la Imagen</label><input type="url" id="img-src" value="${selectedElement.dataset.src}"></div>
-                            <div class="prop-group"><label for="img-alt">Texto Alternativo</label><input type="text" id="img-alt" value="${selectedElement.dataset.alt}"></div>
+                                <div class="prop-group">
+                                    <label for="img-width">Ancho: <span id="img-width-value">${selectedElement.dataset.width}%</span></label>
+                                    <input type="range" id="img-width" min="10" max="100" value="${selectedElement.dataset.width}">
+                                </div>
+                                <div class="prop-group"><label for="img-src">URL de la Imagen</label><input type="url" id="img-src" value="${selectedElement.dataset.src}"></div>
+                                <div class="prop-group"><label for="img-alt">Texto Alternativo</label><input type="text" id="img-alt" value="${selectedElement.dataset.alt}"></div>
                         `;
                         break;
                     case 'button':
@@ -380,26 +388,41 @@
                         break;
                     case 'separator':
                         propsHtml = `
-                            <div class="prop-group"><label for="sep-style">Estilo de Línea</label><select id="sep-style"><option value="solid">Sólida</option><option value="dotted">Punteada</option><option value="double">Doble</option><option value="none">Ninguna (Espaciador)</option></select></div>
-                            <div class="prop-group" id="sep-color-group"><label for="sep-color">Color</label><input type="color" id="sep-color" value="${selectedElement.dataset.color}"></div>
-                            <div class="prop-group"><label for="sep-padding-top">Espacio Superior (px)</label><input type="number" id="sep-padding-top" min="0" value="${selectedElement.dataset.paddingTop}"></div>
-                            <div class="prop-group"><label for="sep-padding-bottom">Espacio Inferior (px)</label><input type="number" id="sep-padding-bottom" min="0" value="${selectedElement.dataset.paddingBottom}"></div>
+                                <div class="prop-group"><label for="sep-style">Estilo de Línea</label><select id="sep-style"><option value="solid">Sólida</option><option value="dotted">Punteada</option><option value="double">Doble</option><option value="none">Ninguna (Espaciador)</option></select></div>
+                                <div class="prop-group" id="sep-color-group"><label for="sep-color">Color</label><input type="color" id="sep-color" value="${selectedElement.dataset.color}"></div>
+                                <div class="prop-group"><label for="sep-padding-top">Espacio Interno Superior (px)</label><input type="number" id="sep-padding-top" min="0" value="${selectedElement.dataset.paddingTop}"></div>
+                                <div class="prop-group"><label for="sep-padding-bottom">Espacio Interno Inferior (px)</label><input type="number" id="sep-padding-bottom" min="0" value="${selectedElement.dataset.paddingBottom}"></div>
                         `;
                         break;
                     case 'columns':
-                         propsHtml = `<div class="prop-group"><label for="col-count">Número de Columnas</label><select id="col-count">
-                            <option value="2">2</option><option value="3">3</option><option value="4">4</option>
-                            <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
-                         </select></div>`;
-                         break;
+                            // Updated to allow up to 15 columns
+                            propsHtml = `<div class="prop-group"><label for="col-count">Número de Columnas</label><select id="col-count">`;
+                            for (let i = 2; i <= 15; i++) {
+                                propsHtml += `<option value="${i}">${i}</option>`;
+                            }
+                            propsHtml += `</select></div>`;
+                            break;
                 }
                 
                 if (['text', 'image', 'button'].includes(type)) {
                     propsHtml = `<div class="prop-group"><label for="block-align">Alineación</label><select id="block-align"><option value="left">Izquierda</option><option value="center">Centro</option><option value="right">Derecha</option></select></div>` + propsHtml;
                 }
 
+                // Add general margin controls to all elements
+                propsHtml += `
+                    <hr>
+                    <div class="prop-group">
+                        <label for="margin-top">Margen Superior (px)</label>
+                        <input type="number" id="margin-top" min="0" value="${selectedElement.dataset.marginTop}">
+                    </div>
+                    <div class="prop-group">
+                        <label for="margin-bottom">Margen Inferior (px)</label>
+                        <input type="number" id="margin-bottom" min="0" value="${selectedElement.dataset.marginBottom}">
+                    </div>
+                `;
+
                 if (type !== 'button') {
-                     propsHtml += `<hr><div class="prop-group"><label for="link-href">URL de Enlace (Opcional)</label><input type="url" id="link-href" value="${selectedElement.dataset.linkHref || ''}" placeholder="https://ejemplo.com"></div>`;
+                        propsHtml += `<hr><div class="prop-group"><label for="link-href">URL de Enlace (Opcional)</label><input type="url" id="link-href" value="${selectedElement.dataset.linkHref || ''}" placeholder="https://ejemplo.com"></div>`;
                 }
 
                 propertiesPanel.innerHTML = propsHtml;
@@ -416,6 +439,25 @@
                     alignSelect.addEventListener('input', e => {
                         selectedElement.dataset.align = e.target.value;
                         selectedElement.style.textAlign = e.target.value;
+                    });
+                }
+
+                // General margin listeners
+                const marginTopInput = document.getElementById('margin-top');
+                if (marginTopInput) {
+                    marginTopInput.addEventListener('input', e => {
+                        const val = e.target.value || 0;
+                        selectedElement.dataset.marginTop = val;
+                        selectedElement.style.paddingTop = `${val}px`;
+                    });
+                }
+
+                const marginBottomInput = document.getElementById('margin-bottom');
+                if (marginBottomInput) {
+                    marginBottomInput.addEventListener('input', e => {
+                        const val = e.target.value || 0;
+                        selectedElement.dataset.marginBottom = val;
+                        selectedElement.style.paddingBottom = `${val}px`;
                     });
                 }
 
@@ -468,15 +510,16 @@
                         selectedElement.querySelector('.content').style.borderBottomStyle = e.target.value;
                         toggleColorPicker();
                     });
+                    // These are for the separator's internal padding, not the general element margins
                     document.getElementById('sep-padding-top').addEventListener('input', e => {
                         const val = e.target.value || 0;
                         selectedElement.dataset.paddingTop = val;
-                        selectedElement.style.paddingTop = `${val}px`;
+                        selectedElement.querySelector('.content').style.paddingTop = `${val}px`;
                     });
                     document.getElementById('sep-padding-bottom').addEventListener('input', e => {
                         const val = e.target.value || 0;
                         selectedElement.dataset.paddingBottom = val;
-                        selectedElement.style.paddingBottom = `${val}px`;
+                        selectedElement.querySelector('.content').style.paddingBottom = `${val}px`;
                     });
                 }
                 if (type === 'columns') {
@@ -516,8 +559,13 @@
                     const type = element.dataset.type;
                     const link = element.dataset.linkHref;
                     const align = element.dataset.align || 'left';
+                    const marginTop = element.dataset.marginTop || '10';
+                    const marginBottom = element.dataset.marginBottom || '10';
                     let content = '';
-                    let styles = `padding: 10px; font-family: Arial, sans-serif; font-size: 16px; color: #333333; word-break: break-word; text-align: ${align};`;
+                    let styles = `padding-left: 10px; padding-right: 10px; font-family: Arial, sans-serif; font-size: 16px; color: #333333; word-break: break-word; text-align: ${align};`;
+
+                    // Apply general margins
+                    styles += ` padding-top: ${marginTop}px; padding-bottom: ${marginBottom}px;`;
 
                     switch(type) {
                         case 'text':
@@ -530,26 +578,32 @@
                             const width = element.dataset.width || '100';
                             content = `<img src="${element.dataset.src}" alt="${element.dataset.alt}" style="width: ${width}%; max-width: 100%; height: auto; display: inline-block;" border="0">`;
                             if (link) content = `<a href="${link}" target="_blank" style="display: block; text-decoration: none;">${content}</a>`;
-                            html += `<tr><td style="padding: 10px; text-align: ${align};">${content}</td></tr>`;
+                            // Image's TD will use the general margins
+                            html += `<tr><td style="${styles}">${content}</td></tr>`;
                             break;
                         case 'button':
                             content = `<a href="${element.dataset.href}" target="_blank" style="background-color: ${element.dataset.backgroundColor}; color: #ffffff; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-family: Arial, sans-serif; font-weight: bold; display: inline-block;">${element.querySelector('.content').textContent}</a>`;
-                            html += `<tr><td style="padding: 20px; text-align: ${align};">${content}</td></tr>`;
+                            // Button's TD will use the general margins
+                            html += `<tr><td style="${styles}">${content}</td></tr>`;
                             break;
                         case 'separator':
-                            const paddingTop = element.dataset.paddingTop || '10';
-                            const paddingBottom = element.dataset.paddingBottom || '10';
+                            const sepPaddingTop = element.dataset.paddingTop || '10';
+                            const sepPaddingBottom = element.dataset.paddingBottom || '10';
                             const borderStyle = element.dataset.borderStyle || 'solid';
                             
+                            let separatorContent = '';
                             if (borderStyle !== 'none') {
                                 const color = element.dataset.color || '#cccccc';
-                                content = `<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr><td style="border-bottom: 2px ${borderStyle} ${color};"></td></tr></table>`;
+                                separatorContent = `<table width="100%" border="0" cellspacing="0" cellpadding="0"><tr><td style="border-bottom: 2px ${borderStyle} ${color};"></td></tr></table>`;
                             } else {
-                                content = '';
+                                separatorContent = '';
                             }
 
-                            if (link) content = `<a href="${link}" target="_blank" style="display: block; text-decoration: none;">${content}</a>`;
-                            html += `<tr><td style="padding: ${paddingTop}px 10px ${paddingBottom}px 10px; font-size: 0; line-height: 0;">${content || '&nbsp;'}</td></tr>`;
+                            if (link) separatorContent = `<a href="${link}" target="_blank" style="display: block; text-decoration: none;">${separatorContent}</a>`;
+                            // Separator's TD will use the general margins, and its internal content will have its specific padding
+                            html += `<tr><td style="padding-left: 10px; padding-right: 10px; padding-top: ${marginTop}px; padding-bottom: ${marginBottom}px; font-size: 0; line-height: 0;">
+                                <div style="padding-top: ${sepPaddingTop}px; padding-bottom: ${sepPaddingBottom}px;">${separatorContent || '&nbsp;'}</div>
+                            </td></tr>`;
                             break;
                         case 'columns':
                             const colCount = parseInt(element.dataset.columns, 10);
@@ -561,7 +615,8 @@
                             });
                             content = `<table width="100%" border="0" cellspacing="0" cellpadding="0"><tbody><tr>${columnsHtml}</tr></tbody></table>`;
                             if(link) content = `<a href="${link}" target="_blank" style="text-decoration:none; color:inherit; display:block;">${content}</a>`;
-                            html += `<tr><td style="padding: 10px;">${content}</td></tr>`;
+                            // Columns TD will use the general margins
+                            html += `<tr><td style="${styles}">${content}</td></tr>`;
                             break;
                     }
                 });
@@ -585,7 +640,8 @@
                         parseAndRebuild(htmlString);
                     } catch (error) {
                         console.error("Error parsing HTML:", error);
-                        alert("No se pudo importar el archivo. Asegúrate de que fue exportado desde este editor.");
+                        // Using a custom message box instead of alert()
+                        displayMessageBox("No se pudo importar el archivo. Asegúrate de que fue exportado desde este editor.");
                     }
                 };
                 reader.readAsText(file);
@@ -624,14 +680,19 @@
                 const contentNode = (potentialLink && potentialLink.parentElement === td) ? potentialLink : td;
                 const linkHref = (potentialLink && potentialLink.parentElement === td && !td.querySelector('a[style*="background-color"]')) ? potentialLink.href : '';
                 const align = td.style.textAlign || 'left';
+                
+                // Extract general margins
+                const marginTop = td.style.paddingTop ? td.style.paddingTop.replace('px', '') : '10';
+                const marginBottom = td.style.paddingBottom ? td.style.paddingBottom.replace('px', '') : '10';
 
-                if (td.style.lineHeight) {
-                    return { type: 'text', innerHTML: contentNode.innerHTML, align: align, lineHeight: td.style.lineHeight, linkHref: linkHref };
+
+                if (td.style.lineHeight && td.style.lineHeight !== '0') { // Added check for lineHeight !== '0' to differentiate from separator
+                    return { type: 'text', innerHTML: contentNode.innerHTML, align: align, lineHeight: td.style.lineHeight, linkHref: linkHref, marginTop: marginTop, marginBottom: marginBottom };
                 }
 
                 const img = contentNode.querySelector('img');
                 if (img) {
-                    return { type: 'image', src: img.src, alt: img.alt, linkHref: linkHref, align: align, width: parseInt(img.style.width, 10) || 100 };
+                    return { type: 'image', src: img.src, alt: img.alt, linkHref: linkHref, align: align, width: parseInt(img.style.width, 10) || 100, marginTop: marginTop, marginBottom: marginBottom };
                 }
 
                 const buttonLink = td.querySelector('a[style*="background-color"]');
@@ -641,37 +702,81 @@
                         text: buttonLink.textContent.trim(),
                         href: buttonLink.href,
                         backgroundColor: buttonLink.style.backgroundColor,
-                        align: align
+                        align: align,
+                        marginTop: marginTop,
+                        marginBottom: marginBottom
                     };
                 }
 
                 const columnsTable = contentNode.querySelector(':scope > table');
                 if (columnsTable && columnsTable.querySelector('td[width]')) {
-                     const cols = columnsTable.querySelectorAll(':scope > tbody > tr > td');
-                     const children = Array.from(cols).map(colTd => {
-                         const innerTableRows = colTd.querySelector(':scope > table > tbody').children;
-                         return Array.from(innerTableRows).map(row => parseRowToConfig(row.firstElementChild)).filter(Boolean);
-                     });
-                     return { type: 'columns', columns: cols.length, children: children, linkHref: linkHref };
+                    const cols = columnsTable.querySelectorAll(':scope > tbody > tr > td');
+                    const children = Array.from(cols).map(colTd => {
+                        const innerTableRows = colTd.querySelector(':scope > table > tbody').children;
+                        return Array.from(innerTableRows).map(row => parseRowToConfig(row.firstElementChild)).filter(Boolean);
+                    });
+                    return { type: 'columns', columns: cols.length, children: children, linkHref: linkHref, marginTop: marginTop, marginBottom: marginBottom };
                 }
                 
-                 if (td.style.fontSize === '0px') {
-                    const borderTd = contentNode.querySelector('td[style*="border-bottom"]');
+                // Separator detection
+                if (td.style.fontSize === '0px' || (td.style.paddingTop && td.style.paddingBottom && td.querySelector('div[style*="padding-top"]'))) {
+                    const innerDiv = td.querySelector('div[style*="padding-top"]');
+                    const innerPaddingTop = innerDiv ? innerDiv.style.paddingTop.replace('px', '') : '10';
+                    const innerPaddingBottom = innerDiv ? innerDiv.style.paddingBottom.replace('px', '') : '10';
+
+                    const borderTd = innerDiv ? innerDiv.querySelector('td[style*="border-bottom"]') : null;
                     const borderStyleRaw = borderTd ? borderTd.style.borderBottom : '2px none transparent';
                     const [,, borderStyle, borderColor] = borderStyleRaw.split(' ');
                     return {
                         type: 'separator',
-                        paddingTop: td.style.paddingTop.replace('px', ''),
-                        paddingBottom: td.style.paddingBottom.replace('px', ''),
+                        paddingTop: innerPaddingTop, // This is the separator's internal padding
+                        paddingBottom: innerPaddingBottom, // This is the separator's internal padding
                         borderStyle: borderTd ? borderStyle : 'none',
                         color: borderTd ? borderColor : '#cccccc',
-                        linkHref: linkHref
+                        linkHref: linkHref,
+                        marginTop: marginTop, // General margin for the TD
+                        marginBottom: marginBottom // General margin for the TD
                     };
                 }
 
                 return null;
             }
 
+            // Custom message box function
+            function displayMessageBox(message) {
+                const messageBox = document.createElement('div');
+                messageBox.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background-color: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                    z-index: 1000;
+                    text-align: center;
+                    font-family: Arial, sans-serif;
+                    color: #333;
+                `;
+                messageBox.innerHTML = `
+                    <p>${message}</p>
+                    <button style="
+                        background-color: #0c67e6;
+                        color: white;
+                        border: none;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        cursor: pointer;
+                        margin-top: 15px;
+                    ">Cerrar</button>
+                `;
+                document.body.appendChild(messageBox);
+
+                messageBox.querySelector('button').addEventListener('click', () => {
+                    messageBox.remove();
+                });
+            }
         });
     </script>
 </body>
