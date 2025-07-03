@@ -395,12 +395,10 @@
                         `;
                         break;
                     case 'columns':
-                            // Updated to allow up to 15 columns
-                            propsHtml = `<div class="prop-group"><label for="col-count">Número de Columnas</label><select id="col-count">`;
-                            for (let i = 2; i <= 15; i++) {
-                                propsHtml += `<option value="${i}">${i}</option>`;
-                            }
-                            propsHtml += `</select></div>`;
+                            propsHtml = `<div class="prop-group"><label for="col-count">Número de Columnas</label><select id="col-count">
+                                <option value="2">2</option><option value="3">3</option><option value="4">4</option>
+                                <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
+                            </select></div>`;
                             break;
                 }
                 
