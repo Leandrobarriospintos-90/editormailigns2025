@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Notas MD - UNLu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        .preview-container {
+            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        input:read-only {
+            background-color: #f9fafb;
+            color: #6b7280;
+            cursor: not-allowed;
+        }
+
+        .toolbar-btn {
+            @apply p-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-700 transition-colors flex items-center justify-center;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-gray-800">Generador de Documentos .md</h1>
+            <p class="text-gray-600">Estructura estandarizada para Novedades UNLu</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Panel de Entrada -->
+            <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+                <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Configuración de Nota
+                </h2>
+                
+                <div class="space-y-4">
+                    <!-- SECCIÓN SUPERIOR: IDENTIFICADOR -->
+                    <div class="p-4 bg-blue-50 rounded-lg border border-blue-100 mb-6">
+                        <label class="block text-sm font-bold text-blue-900 mb-1">Nombre base del archivo (sin extensión)</label>
+                        <input type="text" id="baseFileName" class="block w-full px-3 py-2 bg-white border border-blue-300 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="ej: 50-anos-memoria">
+                        <div class="flex gap-4 mt-2 text-xs font-medium text-blue-700">
+                            <span>Exportar como: <code id="exportHint" class="bg-blue-100 px-1 rounded">--.md</code></span>
+                            <span>Imagen: <code id="imageHint" class="bg-blue-100 px-1 rounded">--.jpg</code></span>
+                        </div>
+                    </div>
+
+                    <hr class="border-gray-100">
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Título de la Nota</label>
+                        <input type="text" id="title" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Ej: 50 años por la Memoria...">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Descripción Corta</label>
+                        <textarea id="description" rows="2" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="Resumen para el frontmatter..."></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Fecha</label>
+                            <input type="date" id="date" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Categoría</label>
+                            <input type="text" id="category" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="MEMORIA, VERDAD Y JUSTICIA">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 text-xs text-gray-400">Ruta Imagen (Auto)</label>
+                            <input type="text" id="fullImagePath" class="mt-1 block w-full px-2 py-1 border border-gray-200 rounded-md text-xs" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 text-xs text-gray-400">Autor</label>
+                            <input type="text" id="author" class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-md text-xs" value="Prensa ATUNLu">
+                        </div>
+                    </div>
+
+                    <!-- Barra de herramientas MD -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cuerpo de la Nota</label>
+                        <div class="flex flex-wrap gap-1 bg-gray-50 p-2 border border-b-0 border-gray-300 rounded-t-md">
+                            <button onclick="insertFormat('**', '**')" class="toolbar-btn px-3" title="Negrita"><strong>B</strong></button>
+                            <button onclick="insertFormat('_', '_')" class="toolbar-btn px-3" title="Cursiva"><em>I</em></button>
+                            <button onclick="insertFormat('### ', '')" class="toolbar-btn px-2" title="Título H3">H3</button>
+                            <button onclick="insertFormat('[', '](url)')" class="toolbar-btn px-2" title="Enlace">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            </button>
+                            <button onclick="insertFormat('- ', '')" class="toolbar-btn px-2" title="Lista">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                            </button>
+                            <button onclick="insertFormat('> ', '')" class="toolbar-btn px-2" title="Cita">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/></svg>
+                            </button>
+                        </div>
+                        <textarea id="bodyContent" rows="8" class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-b-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 code-font text-sm" placeholder="Escribe el contenido aquí..."></textarea>
+                    </div>
+
+                    <button onclick="downloadMarkdown()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Descargar archivo .md
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel de Previsualización -->
+            <div class="flex flex-col h-full">
+                <h2 class="text-xl font-semibold mb-4 flex items-center gap-2 text-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    Vista Previa
+                </h2>
+                <div class="preview-container bg-slate-900 rounded-xl shadow-lg border border-slate-700 flex-grow p-6 overflow-auto">
+                    <pre id="mdPreview" class="text-green-400 code-font text-sm whitespace-pre-wrap"></pre>
+                </div>
+                <div class="mt-4 p-4 bg-gray-100 rounded-lg text-gray-600 text-xs italic">
+                    Usa los botones de formato para agilizar la redacción. El sistema autocompleta el frontmatter basándose en el nombre base y el título.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const inputs = ['baseFileName', 'title', 'description', 'date', 'category', 'author', 'bodyContent'];
+        const imagePathBase = "../../assets/images/novedades/";
+
+        // Elementos
+        const previewEl = document.getElementById('mdPreview');
+        const baseFileNameInput = document.getElementById('baseFileName');
+        const exportHint = document.getElementById('exportHint');
+        const imageHint = document.getElementById('imageHint');
+        const fullImagePathInput = document.getElementById('fullImagePath');
+        const bodyTextarea = document.getElementById('bodyContent');
+
+        function updatePreview() {
+            const baseName = baseFileNameInput.value.trim() || 'nueva-nota';
+            const title = document.getElementById('title').value;
+            const description = document.getElementById('description').value;
+            const date = document.getElementById('date').value;
+            const category = document.getElementById('category').value;
+            const author = document.getElementById('author').value;
+            const body = bodyTextarea.value;
+
+            // Automatización
+            const imageName = `${baseName}.jpg`;
+            const exportName = `${baseName}.md`;
+            const fullImagePath = `${imagePathBase}${imageName}`;
+
+            // Actualizar visuales
+            exportHint.textContent = exportName;
+            imageHint.textContent = imageName;
+            fullImagePathInput.value = fullImagePath;
+
+            const md = `---
+title: "${title}"
+description: "${description}"
+date: ${date}
+image: "${fullImagePath}"
+imageAlt: "${title}"
+category: "${category.toUpperCase()}"
+author: "${author}"
+---
+
+${body}`;
+
+            previewEl.textContent = md;
+            return { md, exportName };
+        }
+
+        // Función para insertar formato MD
+        function insertFormat(startTag, endTag) {
+            const start = bodyTextarea.selectionStart;
+            const end = bodyTextarea.selectionEnd;
+            const text = bodyTextarea.value;
+            const selectedText = text.substring(start, end);
+            
+            // Si no hay selección, usar texto de ejemplo
+            const replacement = selectedText.length > 0 ? 
+                                startTag + selectedText + endTag : 
+                                startTag + "texto" + endTag;
+
+            bodyTextarea.value = text.substring(0, start) + replacement + text.substring(end);
+            
+            // Re-posicionar el cursor
+            bodyTextarea.focus();
+            const newCursorPos = start + startTag.length + (selectedText.length || 5);
+            bodyTextarea.setSelectionRange(newCursorPos, newCursorPos);
+            
+            updatePreview();
+        }
+
+        inputs.forEach(id => {
+            document.getElementById(id).addEventListener('input', updatePreview);
+        });
+
+        function downloadMarkdown() {
+            const { md, exportName } = updatePreview();
+            const element = document.createElement('a');
+            const file = new Blob([md], {type: 'text/markdown'});
+            element.href = URL.createObjectURL(file);
+            element.download = exportName;
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+        }
+
+        document.getElementById('date').valueAsDate = new Date();
+        
+        // Datos de ejemplo iniciales
+        baseFileNameInput.value = "50-anos-por-la-memoria-la-verdad-y-la-justicia";
+        document.getElementById('title').value = "“50 años por la Memoria, la Verdad y la Justicia”";
+        document.getElementById('description').value = "El Consejo Superior de la UNLu dispuso que durante el año 2026 en todas las comunicaciones oficiales...";
+        document.getElementById('category').value = "MEMORIA, VERDAD Y JUSTICIA";
+        bodyTextarea.value = "El Consejo Superior de la UNLu dispuso que durante el año 2026 en todas las comunicaciones oficiales...\n\nLa Resolución fue aprobada a propuesta de la Comisión de Preservación de la Memoria Institucional...";
+        
+        updatePreview();
+    </script>
+</body>
+</html>
