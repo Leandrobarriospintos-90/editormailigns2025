@@ -1,0 +1,2070 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Mailings Profesional - Versión Mejorada</title>
+    <style>
+        /* --- General Styles --- */
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: #ffffff;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #dcdfe3;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: #1c1e21;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .control-group { display: flex; align-items: center; gap: 10px; }
+        .control-group label { font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
+        #width-slider { width: 120px; }
+        #width-value { font-weight: 600; min-width: 40px; }
+        #bg-color-picker { width: 40px; height: 30px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; padding: 2px; background-color: white; }
+        
+        .header-controls button { 
+            border: none; 
+            padding: 0.6rem 1.2rem; 
+            border-radius: 6px; 
+            font-size: 0.9rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .style-button { background-color: #e4e6eb; color: #050505; }
+        .style-button:hover { background-color: #d8dbdf; }
+        .export-button { background-color: #0c67e6; color: white; }
+        .export-button:hover { background-color: #0a58c4; }
+        .danger-button { background-color: #dc3545; color: white; }
+        .danger-button:hover { background-color: #c82333; }
+        .success-button { background-color: #28a745; color: white; }
+        .success-button:hover { background-color: #218838; }
+
+        /* History Buttons */
+        .history-buttons { display: flex; gap: 5px; }
+        .history-buttons button {
+            padding: 0.5rem;
+            min-width: 36px;
+            background-color: #e4e6eb;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: background-color 0.2s;
+        }
+        .history-buttons button:hover:not(:disabled) { background-color: #d8dbdf; }
+        .history-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* --- Main Content Area --- */
+        .main-container { display: flex; flex-grow: 1; overflow: hidden; }
+        
+        /* Blocks Panel */
+        .blocks-panel { 
+            width: 260px; 
+            padding: 1.5rem; 
+            background-color: #ffffff; 
+            border-right: 1px solid #dcdfe3; 
+            overflow-y: auto; 
+            flex-shrink: 0; 
+        }
+        .blocks-panel h2 { 
+            margin-top: 0; 
+            margin-bottom: 1rem;
+            font-size: 1.1rem; 
+            border-bottom: 2px solid #0c67e6; 
+            padding-bottom: 0.5rem; 
+            color: #1c1e21;
+        }
+        .blocks-section { margin-bottom: 2rem; }
+        .blocks-section h3 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: #65676b;
+            margin: 0 0 0.75rem 0;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .block { 
+            padding: 0.85rem; 
+            margin-bottom: 0.75rem; 
+            background-color: #f7f7f7; 
+            border: 1px dashed #cccccc; 
+            border-radius: 6px; 
+            cursor: grab; 
+            text-align: center; 
+            font-weight: 500; 
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .block:hover { background-color: #e9e9e9; border-color: #a0a0a0; transform: translateY(-2px); }
+        .block:active { cursor: grabbing; background-color: #dcdfe3; }
+        
+        .template-item {
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .template-item:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        
+        /* --- Canvas (Center) --- */
+        .canvas-area { 
+            flex-grow: 1; 
+            padding: 2rem; 
+            overflow-y: auto; 
+            background-color: #f0f2f5; 
+            transition: background-color 0.3s, padding 0.3s; 
+            position: relative;
+        }
+        
+        /* Device Preview Toggle */
+        .device-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 5px;
+            background: white;
+            padding: 5px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        .device-toggle button {
+            padding: 0.5rem 0.75rem;
+            border: none;
+            background: #f0f2f5;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .device-toggle button.active {
+            background: #0c67e6;
+            color: white;
+        }
+        
+        .canvas { 
+            max-width: 600px; 
+            min-height: 500px; 
+            margin: 0 auto; 
+            background-color: #ffffff; 
+            box-shadow: 0 0 15px rgba(0,0,0,0.1); 
+            border: 1px solid #dcdfe3; 
+            padding: 10px; 
+            transition: all 0.3s; 
+        }
+        
+        .canvas.mobile-view { max-width: 375px; }
+        
+        body.clean-mode .canvas-area { background-color: #ffffff; padding: 0; }
+        body.clean-mode .canvas { box-shadow: none; border: 1px solid transparent; padding: 0; }
+        body.clean-mode .device-toggle { display: none; }
+
+        .canvas .placeholder { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 150px; 
+            border: 2px dashed #dcdfe3; 
+            color: #a0a0a0; 
+            border-radius: 5px;
+            font-size: 0.95rem;
+        }
+        
+        .canvas-element { 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            cursor: pointer; 
+            position: relative; 
+            border: 1px solid transparent; 
+            transition: all 0.2s;
+        }
+        .canvas-element:hover { border: 1px dashed #0c67e6; }
+        .canvas-element.selected { border: 1px solid #0c67e6; background-color: rgba(12, 103, 230, 0.05); }
+        .canvas-element.dragging { opacity: 0.5; border: 1px dashed #a0a0a0; }
+        
+        /* Element Actions */
+        .element-actions {
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            display: none;
+            gap: 5px;
+            z-index: 10;
+        }
+        .canvas-element.selected .element-actions { display: flex; }
+        
+        .element-actions button {
+            background: #0c67e6;
+            color: white;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .element-actions button:hover { transform: scale(1.1); }
+        .element-actions button.delete-btn { background: #e60c0c; }
+        .element-actions button.duplicate-btn { background: #28a745; }
+
+        /* Specific Element Styles */
+        .canvas-element[data-type="image"] .content { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            width: 100%; 
+            height: auto; 
+            min-height: 120px; 
+            background-color: #f0f0f0; 
+            border: 1px solid #ccc; 
+            color: #666; 
+            font-size: 1rem; 
+            font-weight: bold; 
+        }
+        .canvas-element[data-type="image"] .content img { width: 100%; height: auto; display: block; }
+        
+        .canvas-element[data-type="button"] .content { 
+            display: inline-block;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+        
+        .canvas-element[data-type="separator"] .content { 
+            height: 0; 
+            border-bottom-width: 2px; 
+            transition: border-style 0.2s; 
+        }
+        
+        .canvas-element[data-type="spacer"] .content {
+            background: repeating-linear-gradient(
+                45deg,
+                #f0f0f0,
+                #f0f0f0 10px,
+                #e0e0e0 10px,
+                #e0e0e0 20px
+            );
+            border: 1px dashed #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 0.8rem;
+        }
+        
+        /* Columns styles */
+        .canvas-element[data-type="columns"] > .content { 
+            display: flex; 
+            gap: 10px; 
+            padding: 10px; 
+            border: 1px solid #e0e0e0; 
+            border-radius: 4px; 
+        }
+        .column-dropzone { 
+            flex: 1; 
+            min-height: 100px; 
+            padding: 10px; 
+            border: 2px dashed #e0e0e0; 
+            border-radius: 4px; 
+            transition: background-color 0.2s; 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .column-dropzone.col-drag-over { background-color: #e6f7ff; }
+        .column-dropzone .placeholder { 
+            font-size: 0.9rem; 
+            color: #a0a0a0; 
+            text-align: center; 
+            margin: auto; 
+        }
+
+        /* --- Properties Panel (Right) --- */
+        .properties-panel { 
+            width: 340px; 
+            padding: 1.5rem; 
+            background-color: #ffffff; 
+            border-left: 1px solid #dcdfe3; 
+            overflow-y: auto; 
+            flex-shrink: 0; 
+        }
+        .properties-panel h2 { 
+            margin-top: 0; 
+            margin-bottom: 1rem;
+            font-size: 1.1rem; 
+            border-bottom: 2px solid #0c67e6; 
+            padding-bottom: 0.5rem;
+            color: #1c1e21;
+        }
+        
+        .prop-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .prop-tab {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .prop-tab.active {
+            border-bottom-color: #0c67e6;
+            color: #0c67e6;
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .prop-group { margin-bottom: 1.2rem; }
+        .prop-group label { 
+            display: block; 
+            margin-bottom: 0.4rem; 
+            font-weight: 500; 
+            font-size: 0.85rem; 
+            color: #444; 
+        }
+        .prop-group input, .prop-group textarea, .prop-group select { 
+            width: 100%; 
+            padding: 0.5rem; 
+            border: 1px solid #dcdfe3; 
+            border-radius: 4px; 
+            box-sizing: border-box; 
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .prop-group input[type="range"] { padding: 0; }
+        .prop-group input[type="checkbox"] { width: auto; }
+        .prop-group textarea { min-height: 80px; resize: vertical; font-family: 'Courier New', monospace; }
+        .prop-row { display: flex; gap: 10px; }
+        .prop-row > div { flex: 1; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 1.5rem 0; }
+        
+        .color-presets {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .color-preset {
+            width: 100%;
+            height: 30px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .color-preset:hover { transform: scale(1.1); border-color: #0c67e6; }
+        
+        .saved-styles {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .saved-style {
+            padding: 0.75rem;
+            background: #f7f7f7;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .saved-style:hover { background: #e9e9e9; }
+        .saved-style .delete-style {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.2s;
+        }
+        .modal.show { display: flex; align-items: center; justify-content: center; }
+        
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .modal-header h2 { margin: 0; font-size: 1.3rem; }
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .close-modal:hover { background: #f0f0f0; }
+        
+        .code-editor {
+            width: 100%;
+            min-height: 400px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            padding: 1rem;
+            border: 1px solid #dcdfe3;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        /* Variables Modal */
+        .variables-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 1rem;
+        }
+        .variable-tag {
+            padding: 0.5rem;
+            background: #e7f3ff;
+            border: 1px solid #0c67e6;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .variable-tag:hover {
+            background: #0c67e6;
+            color: white;
+        }
+        
+        /* Notification */
+        .notification {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #28a745;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 2000;
+            animation: slideUp 0.3s;
+            display: none;
+        }
+        .notification.show { display: block; }
+        .notification.error { background: #dc3545; }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Icon Library */
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
+            margin-top: 1rem;
+        }
+        .icon-item {
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-item:hover {
+            border-color: #0c67e6;
+            background: #f0f8ff;
+            transform: scale(1.05);
+        }
+        .icon-item svg {
+            width: 100%;
+            height: 100%;
+            max-width: 32px;
+            max-height: 32px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>
+            📧 Editor de Mailings Pro
+        </h1>
+        <div class="header-controls">
+            <div class="history-buttons">
+                <button id="undo-btn" title="Deshacer (Ctrl+Z)" disabled>↶</button>
+                <button id="redo-btn" title="Rehacer (Ctrl+Y)" disabled>↷</button>
+            </div>
+            <div class="control-group">
+                <label for="width-slider">Ancho:</label>
+                <input type="range" id="width-slider" min="400" max="800" step="10" value="600">
+                <span id="width-value">600px</span>
+            </div>
+            <div class="control-group">
+                <label for="bg-color-picker">Fondo:</label>
+                <input type="color" id="bg-color-picker" value="#f0f2f5">
+            </div>
+            <button class="style-button" id="variables-btn">Variables</button>
+            <button class="style-button" id="code-editor-btn">Editar Código</button>
+            <button class="style-button" id="import-html-btn">Importar HTML</button>
+            <input type="file" id="html-importer" accept=".html" style="display: none;">
+            <button class="style-button" id="clean-bg-btn">Vista Previa</button>
+            <button class="danger-button" id="clear-canvas-btn">Limpiar Todo</button>
+            <button class="export-button" id="export-html">Exportar HTML</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside class="blocks-panel">
+            <h2>🧱 Bloques</h2>
+            
+            <div class="blocks-section">
+                <h3>Plantillas</h3>
+                <div class="template-item" data-template="newsletter">📰 Newsletter</div>
+                <div class="template-item" data-template="promo">🎁 Promoción</div>
+                <div class="template-item" data-template="announcement">📣 Anuncio</div>
+            </div>
+            
+            <div class="blocks-section">
+                <h3>Elementos Básicos</h3>
+                <div class="block" draggable="true" data-type="text">📝 Texto</div>
+                <div class="block" draggable="true" data-type="image">🖼️ Imagen</div>
+                <div class="block" draggable="true" data-type="button">🔘 Botón</div>
+            </div>
+            
+            <div class="blocks-section">
+                <h3>Diseño</h3>
+                <div class="block" draggable="true" data-type="separator">➖ Separador</div>
+                <div class="block" draggable="true" data-type="spacer">⬜ Espaciador</div>
+                <div class="block" draggable="true" data-type="columns">📊 Columnas</div>
+            </div>
+        </aside>
+
+        <main class="canvas-area" id="canvas-area">
+            <div class="device-toggle">
+                <button class="active" data-device="desktop">💻 Desktop</button>
+                <button data-device="mobile">📱 Mobile</button>
+            </div>
+            <div class="canvas" id="canvas">
+                <div class="placeholder">Arrastra un bloque aquí para comenzar o carga una plantilla</div>
+            </div>
+        </main>
+
+        <aside class="properties-panel" id="properties-panel">
+            <h2>⚙️ Propiedades</h2>
+            <div id="properties-content">
+                <p style="color: #65676b; font-size: 0.9rem;">Selecciona un elemento para editar sus propiedades.</p>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Variables Modal -->
+    <div id="variables-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Variables Dinámicas</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <p>Haz clic en una variable para copiarla al portapapeles. Úsalas en tus textos y se reemplazarán con datos reales.</p>
+            <div class="variables-list">
+                <div class="variable-tag" data-var="{{nombre}}">{{nombre}}</div>
+                <div class="variable-tag" data-var="{{apellido}}">{{apellido}}</div>
+                <div class="variable-tag" data-var="{{email}}">{{email}}</div>
+                <div class="variable-tag" data-var="{{empresa}}">{{empresa}}</div>
+                <div class="variable-tag" data-var="{{cargo}}">{{cargo}}</div>
+                <div class="variable-tag" data-var="{{telefono}}">{{telefono}}</div>
+                <div class="variable-tag" data-var="{{ciudad}}">{{ciudad}}</div>
+                <div class="variable-tag" data-var="{{pais}}">{{pais}}</div>
+                <div class="variable-tag" data-var="{{fecha}}">{{fecha}}</div>
+                <div class="variable-tag" data-var="{{producto}}">{{producto}}</div>
+                <div class="variable-tag" data-var="{{precio}}">{{precio}}</div>
+                <div class="variable-tag" data-var="{{descuento}}">{{descuento}}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Code Editor Modal -->
+    <div id="code-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>Editor de Código HTML</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <p>Edita directamente el HTML exportado. Los cambios se aplicarán al canvas.</p>
+            <textarea class="code-editor" id="code-textarea"></textarea>
+            <div style="margin-top: 1rem; display: flex; gap: 10px; justify-content: flex-end;">
+                <button class="style-button close-modal">Cancelar</button>
+                <button class="success-button" id="apply-code-btn">Aplicar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Icon Library Modal -->
+    <div id="icon-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Biblioteca de Iconos</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="icon-grid" id="icon-grid"></div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // --- Constants & Icons Library ---
+        const ICONS = {
+            email: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>',
+            phone: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>',
+            location: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>',
+            star: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>',
+            check: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>',
+            cart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/></svg>',
+            heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+            clock: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>',
+            gift: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 6h-2.18c.11-.31.18-.65.18-1 0-1.66-1.34-3-3-3-1.05 0-1.96.54-2.5 1.35l-.5.67-.5-.68C10.96 2.54 10.05 2 9 2 7.34 2 6 3.34 6 5c0 .35.07.69.18 1H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-5-2c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zM9 4c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm11 15H4v-2h16v2zm0-5H4V8h5.08L7 10.83 8.62 12 11 8.76l1-1.36 1 1.36L15.38 12 17 10.83 14.92 8H20v6z"/></svg>',
+            info: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
+            warning: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>',
+            thumb: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>'
+        };
+
+        // --- Templates ---
+        const TEMPLATES = {
+            newsletter: [
+                { type: 'image', src: 'https://placehold.co/600x200/667eea/ffffff?text=Newsletter+Header', width: '100', alt: 'Header' },
+                { type: 'text', innerHTML: '<h1 style="color: #333; margin: 0;">Bienvenido a Nuestro Newsletter</h1>' },
+                { type: 'text', innerHTML: '<p>Hola {{nombre}},</p><p>Nos complace compartir contigo las últimas novedades y contenido exclusivo.</p>' },
+                { type: 'separator', color: '#e0e0e0' },
+                { type: 'text', innerHTML: '<h2 style="color: #0c67e6;">Artículo Destacado</h2><p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore.</p>' },
+                { type: 'button', text: 'Leer Más', href: '#', backgroundColor: '#0c67e6' },
+                { type: 'spacer', height: '30' },
+                { type: 'text', innerHTML: '<p style="font-size: 12px; color: #999; text-align: center;">© 2024 Tu Empresa. Todos los derechos reservados.</p>' }
+            ],
+            promo: [
+                { type: 'text', innerHTML: '<h1 style="color: #e60c0c; text-align: center; margin: 0; font-size: 32px;">🎉 ¡OFERTA ESPECIAL!</h1>' },
+                { type: 'text', innerHTML: '<p style="text-align: center; font-size: 18px;">Hola {{nombre}}, aprovecha nuestro <strong>{{descuento}}% de descuento</strong></p>' },
+                { type: 'image', src: 'https://placehold.co/600x300/28a745/ffffff?text=Producto+en+Oferta', width: '100', alt: 'Producto' },
+                { type: 'button', text: '¡Comprar Ahora!', href: '#', backgroundColor: '#28a745', fontSize: '18', paddingV: '15', paddingH: '40' },
+                { type: 'text', innerHTML: '<p style="text-align: center; color: #999; font-size: 12px;">Oferta válida hasta {{fecha}}</p>' }
+            ],
+            announcement: [
+                { type: 'text', innerHTML: '<h1 style="color: #0c67e6;">📣 Anuncio Importante</h1>' },
+                { type: 'text', innerHTML: '<p>Estimado/a {{nombre}},</p><p>Queremos informarte sobre una actualización importante en nuestros servicios.</p>' },
+                { type: 'separator', color: '#0c67e6' },
+                { type: 'columns', columns: '2', children: [
+                    [{ type: 'text', innerHTML: '<h3>Novedades</h3><p>Nuevas funcionalidades disponibles.</p>' }],
+                    [{ type: 'text', innerHTML: '<h3>Mejoras</h3><p>Optimización del rendimiento.</p>' }]
+                ]},
+                { type: 'button', text: 'Más Información', href: '#', backgroundColor: '#0c67e6' }
+            ]
+        };
+
+        // --- Color Presets ---
+        const COLOR_PRESETS = [
+            '#0c67e6', '#28a745', '#dc3545', '#ffc107', '#17a2b8', '#6c757d',
+            '#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a'
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('canvas');
+            const canvasArea = document.getElementById('canvas-area');
+            const blocks = document.querySelectorAll('.block');
+            const propertiesPanel = document.getElementById('properties-content');
+            const cleanBgBtn = document.getElementById('clean-bg-btn');
+            const widthSlider = document.getElementById('width-slider');
+            const widthValue = document.getElementById('width-value');
+            const importBtn = document.getElementById('import-html-btn');
+            const importInput = document.getElementById('html-importer');
+            const bgColorPicker = document.getElementById('bg-color-picker');
+            const clearCanvasBtn = document.getElementById('clear-canvas-btn');
+            const undoBtn = document.getElementById('undo-btn');
+            const redoBtn = document.getElementById('redo-btn');
+            const variablesBtn = document.getElementById('variables-btn');
+            const codeEditorBtn = document.getElementById('code-editor-btn');
+            
+            let selectedElement = null;
+            let history = [];
+            let historyIndex = -1;
+            const MAX_HISTORY = 50;
+
+            // --- History Management ---
+            function saveState() {
+                const state = serializeCanvasState();
+                if (historyIndex < history.length - 1) {
+                    history = history.slice(0, historyIndex + 1);
+                }
+                history.push(JSON.stringify(state));
+                if (history.length > MAX_HISTORY) history.shift();
+                else historyIndex++;
+                updateHistoryButtons();
+            }
+
+            function updateHistoryButtons() {
+                undoBtn.disabled = historyIndex <= 0;
+                redoBtn.disabled = historyIndex >= history.length - 1;
+            }
+
+            function undo() {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    loadCanvasState(JSON.parse(history[historyIndex]), false);
+                    updateHistoryButtons();
+                }
+            }
+
+            function redo() {
+                if (historyIndex < history.length - 1) {
+                    historyIndex++;
+                    loadCanvasState(JSON.parse(history[historyIndex]), false);
+                    updateHistoryButtons();
+                }
+            }
+
+            undoBtn.addEventListener('click', undo);
+            redoBtn.addEventListener('click', redo);
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', e => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                    e.preventDefault();
+                    undo();
+                } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+                    e.preventDefault();
+                    redo();
+                }
+            });
+
+            // --- UI Controls ---
+            cleanBgBtn.addEventListener('click', () => {
+                document.body.classList.toggle('clean-mode');
+                cleanBgBtn.textContent = document.body.classList.contains('clean-mode') ? 'Editor' : 'Vista Previa';
+            });
+            
+            widthSlider.addEventListener('input', (e) => {
+                const newWidth = e.target.value;
+                widthValue.textContent = `${newWidth}px`;
+                canvas.style.maxWidth = `${newWidth}px`;
+            });
+
+            bgColorPicker.addEventListener('input', e => {
+                canvasArea.style.backgroundColor = e.target.value;
+            });
+            
+            importBtn.addEventListener('click', () => importInput.click());
+            importInput.addEventListener('change', handleHtmlImport);
+
+            clearCanvasBtn.addEventListener('click', () => {
+                if (confirm('¿Estás seguro de que quieres limpiar todo el canvas?')) {
+                    canvas.innerHTML = '<div class="placeholder">Arrastra un bloque aquí para comenzar o carga una plantilla</div>';
+                    clearPropertiesPanel();
+                    saveState();
+                    showNotification('Canvas limpiado');
+                }
+            });
+
+            // Device Toggle
+            document.querySelectorAll('.device-toggle button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.device-toggle button').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    if (btn.dataset.device === 'mobile') {
+                        canvas.classList.add('mobile-view');
+                    } else {
+                        canvas.classList.remove('mobile-view');
+                    }
+                });
+            });
+
+            // Templates
+            document.querySelectorAll('.template-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const templateName = item.dataset.template;
+                    loadTemplate(templateName);
+                });
+            });
+
+            function loadTemplate(name) {
+                if (!TEMPLATES[name]) return;
+                canvas.innerHTML = '';
+                TEMPLATES[name].forEach(conf => createElement(conf, canvas));
+                clearPropertiesPanel();
+                saveState();
+                showNotification(`Plantilla "${name}" cargada`);
+            }
+
+            // --- Variables Modal ---
+            const variablesModal = document.getElementById('variables-modal');
+            variablesBtn.addEventListener('click', () => openModal(variablesModal));
+            
+            document.querySelectorAll('.variable-tag').forEach(tag => {
+                tag.addEventListener('click', () => {
+                    const varText = tag.dataset.var;
+                    navigator.clipboard.writeText(varText).then(() => {
+                        showNotification(`Variable ${varText} copiada al portapapeles`);
+                    });
+                });
+            });
+
+            // --- Code Editor Modal ---
+            const codeModal = document.getElementById('code-modal');
+            const codeTextarea = document.getElementById('code-textarea');
+            const applyCodeBtn = document.getElementById('apply-code-btn');
+
+            codeEditorBtn.addEventListener('click', () => {
+                const exportedHTML = generateFullExportHTML();
+                codeTextarea.value = exportedHTML;
+                openModal(codeModal);
+            });
+
+            applyCodeBtn.addEventListener('click', () => {
+                try {
+                    const doc = new DOMParser().parseFromString(codeTextarea.value, 'text/html');
+                    const scriptTag = doc.getElementById('editor-state');
+                    if (scriptTag) {
+                        loadCanvasState(JSON.parse(scriptTag.textContent));
+                        closeModal(codeModal);
+                        showNotification('Código aplicado correctamente');
+                    } else {
+                        showNotification('No se encontró el estado del editor en el HTML', true);
+                    }
+                } catch (e) {
+                    showNotification('Error al procesar el código HTML', true);
+                }
+            });
+
+            // --- Modal Management ---
+            function openModal(modal) {
+                modal.classList.add('show');
+            }
+
+            function closeModal(modal) {
+                modal.classList.remove('show');
+            }
+
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btn.closest('.modal').classList.remove('show');
+                });
+            });
+
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeModal(modal);
+                });
+            });
+
+            // --- Notification ---
+            function showNotification(message, isError = false) {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.classList.toggle('error', isError);
+                notification.classList.add('show');
+                setTimeout(() => notification.classList.remove('show'), 3000);
+            }
+
+            // --- Drag & Drop Logic ---
+            blocks.forEach(block => {
+                block.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', block.dataset.type));
+            });
+            
+            canvas.addEventListener('dragover', e => {
+                e.preventDefault();
+                const dragging = document.querySelector('.canvas-element.dragging');
+                if (!dragging) return;
+                
+                const afterElement = getDragAfterElement(e.currentTarget, e.clientY);
+                if (afterElement) {
+                    e.currentTarget.insertBefore(dragging, afterElement);
+                } else {
+                    e.currentTarget.appendChild(dragging);
+                }
+            });
+
+            canvas.addEventListener('drop', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (document.querySelector('.canvas-element.dragging')) return;
+                const type = e.dataTransfer.getData('text/plain');
+                if (!type) return;
+                const placeholder = canvas.querySelector('.placeholder');
+                if (placeholder) placeholder.remove();
+                createElement({type: type}, canvas);
+                saveState();
+            });
+
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll(':scope > .canvas-element:not(.dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset, element: child };
+                    }
+                    return closest;
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+            
+            // --- Element Creation ---
+            function createElement(config, parent) {
+                if (!parent) parent = canvas;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'canvas-element';
+                wrapper.dataset.type = config.type;
+                wrapper.draggable = true;
+                
+                // Common properties
+                wrapper.dataset.linkHref = config.linkHref || '';
+                wrapper.dataset.align = config.align || (config.type === 'button' || config.type === 'image' ? 'center' : 'left');
+                wrapper.style.textAlign = wrapper.dataset.align;
+                wrapper.dataset.marginTop = config.marginTop || '15';
+                wrapper.dataset.marginBottom = config.marginBottom || '15';
+                wrapper.style.paddingTop = `${wrapper.dataset.marginTop}px`;
+                wrapper.style.paddingBottom = `${wrapper.dataset.marginBottom}px`;
+                
+                // New styling properties
+                wrapper.dataset.bgColor = config.bgColor || 'transparent';
+                wrapper.dataset.borderWidth = config.borderWidth || '0';
+                wrapper.dataset.borderColor = config.borderColor || '#000000';
+                wrapper.dataset.borderStyle = config.borderStyle || 'solid';
+                wrapper.dataset.borderRadius = config.borderRadius || '0';
+                wrapper.dataset.paddingInternal = config.paddingInternal || '0';
+                wrapper.dataset.boxShadow = config.boxShadow || 'none';
+                
+                applyElementStyles(wrapper);
+                
+                wrapper.addEventListener('dragstart', e => { 
+                    e.stopPropagation(); 
+                    setTimeout(() => wrapper.classList.add('dragging'), 0); 
+                });
+                wrapper.addEventListener('dragend', e => { 
+                    e.stopPropagation(); 
+                    wrapper.classList.remove('dragging');
+                    saveState();
+                });
+                
+                const content = document.createElement('div');
+                content.className = 'content';
+
+                switch (config.type) {
+                    case 'text':
+                        content.innerHTML = config.innerHTML || '<p>Este es un texto de ejemplo. Puedes usar variables como {{nombre}}.</p>';
+                        wrapper.dataset.lineHeight = config.lineHeight || '1.5';
+                        content.style.lineHeight = wrapper.dataset.lineHeight;
+                        break;
+                    case 'image':
+                        const img = document.createElement('img');
+                        img.src = config.src || 'https://placehold.co/600x200/EEE/31343C?text=Imagen+Placeholder';
+                        content.innerHTML = '';
+                        content.appendChild(img);
+                        wrapper.dataset.src = img.src;
+                        wrapper.dataset.alt = config.alt || 'Imagen descriptiva';
+                        wrapper.dataset.width = config.width || '100';
+                        img.style.width = `${wrapper.dataset.width}%`;
+                        break;
+                    case 'button':
+                        content.textContent = config.text || 'Haz clic aquí';
+                        wrapper.dataset.href = config.href || '#';
+                        wrapper.dataset.backgroundColor = config.backgroundColor || '#0c67e6';
+                        wrapper.dataset.textColor = config.textColor || '#ffffff';
+                        wrapper.dataset.fontSize = config.fontSize || '16';
+                        wrapper.dataset.fontWeight = config.fontWeight || '600';
+                        wrapper.dataset.buttonBorderRadius = config.buttonBorderRadius || '6';
+                        wrapper.dataset.paddingV = config.paddingV || '12';
+                        wrapper.dataset.paddingH = config.paddingH || '24';
+                        wrapper.dataset.fullWidth = config.fullWidth || 'false';
+                        wrapper.dataset.hoverColor = config.hoverColor || '';
+
+                        content.style.backgroundColor = wrapper.dataset.backgroundColor;
+                        content.style.color = wrapper.dataset.textColor;
+                        content.style.fontSize = `${wrapper.dataset.fontSize}px`;
+                        content.style.fontWeight = wrapper.dataset.fontWeight;
+                        content.style.borderRadius = `${wrapper.dataset.buttonBorderRadius}px`;
+                        content.style.padding = `${wrapper.dataset.paddingV}px ${wrapper.dataset.paddingH}px`;
+                        if (wrapper.dataset.fullWidth === 'true') {
+                            content.style.display = 'block';
+                            content.style.width = '100%';
+                        }
+                        break;
+                    case 'separator':
+                        wrapper.dataset.color = config.color || '#cccccc';
+                        wrapper.dataset.separatorBorderStyle = config.separatorBorderStyle || 'solid';
+                        content.style.borderBottomStyle = wrapper.dataset.separatorBorderStyle;
+                        content.style.borderBottomColor = wrapper.dataset.color;
+                        break;
+                    case 'spacer':
+                        wrapper.dataset.height = config.height || '40';
+                        content.style.height = `${wrapper.dataset.height}px`;
+                        content.textContent = `${wrapper.dataset.height}px`;
+                        break;
+                    case 'columns':
+                        wrapper.dataset.columns = config.columns || '2';
+                        createColumns(content, parseInt(wrapper.dataset.columns, 10), config.children);
+                        break;
+                }
+                
+                wrapper.appendChild(content);
+
+                // Element Actions
+                const actions = document.createElement('div');
+                actions.className = 'element-actions';
+                
+                const duplicateBtn = document.createElement('button');
+                duplicateBtn.className = 'duplicate-btn';
+                duplicateBtn.innerHTML = '⎘';
+                duplicateBtn.title = 'Duplicar';
+                duplicateBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    duplicateElement(wrapper);
+                });
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = '×';
+                deleteBtn.title = 'Eliminar';
+                deleteBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    deleteElement(wrapper);
+                });
+                
+                actions.appendChild(duplicateBtn);
+                actions.appendChild(deleteBtn);
+                wrapper.appendChild(actions);
+
+                parent.appendChild(wrapper);
+                const placeholder = parent.querySelector('.placeholder');
+                if (placeholder) placeholder.remove();
+            }
+
+            function applyElementStyles(wrapper) {
+                const content = wrapper.querySelector('.content');
+                if (!content) return;
+                
+                wrapper.style.backgroundColor = wrapper.dataset.bgColor;
+                wrapper.style.borderWidth = `${wrapper.dataset.borderWidth}px`;
+                wrapper.style.borderColor = wrapper.dataset.borderColor;
+                wrapper.style.borderStyle = wrapper.dataset.borderWidth === '0' ? 'none' : wrapper.dataset.borderStyle;
+                wrapper.style.borderRadius = `${wrapper.dataset.borderRadius}px`;
+                wrapper.style.padding = `${wrapper.dataset.paddingTop}px ${wrapper.dataset.paddingInternal}px ${wrapper.dataset.paddingBottom}px ${wrapper.dataset.paddingInternal}px`;
+                wrapper.style.boxShadow = wrapper.dataset.boxShadow;
+            }
+
+            function duplicateElement(element) {
+                const config = extractElementConfig(element);
+                const parent = element.parentElement;
+                const newElement = document.createElement('div');
+                parent.insertBefore(newElement, element.nextSibling);
+                newElement.remove();
+                createElement(config, parent);
+                saveState();
+                showNotification('Elemento duplicado');
+            }
+
+            function deleteElement(element) {
+                const parentContainer = element.parentElement;
+                element.remove();
+                clearPropertiesPanel();
+                if(parentContainer.children.length === 0 && parentContainer.classList.contains('column-dropzone')){
+                    parentContainer.innerHTML = '<div class="placeholder">Arrastra aquí</div>';
+                }
+                if (canvas.children.length === 0) {
+                    canvas.innerHTML = '<div class="placeholder">Arrastra un bloque aquí para comenzar o carga una plantilla</div>';
+                }
+                saveState();
+            }
+
+            function extractElementConfig(element) {
+                const config = { ...element.dataset };
+                const type = config.type;
+                
+                if (type === 'text') {
+                    config.innerHTML = element.querySelector('.content').innerHTML;
+                } else if (type === 'button') {
+                    config.text = element.querySelector('.content').textContent;
+                } else if (type === 'columns') {
+                    config.children = [];
+                    element.querySelectorAll('.column-dropzone').forEach(col => {
+                        const colElements = [];
+                        col.querySelectorAll(':scope > .canvas-element').forEach(el => {
+                            colElements.push(extractElementConfig(el));
+                        });
+                        config.children.push(colElements);
+                    });
+                }
+                
+                return config;
+            }
+
+            function createColumns(container, count, childrenConfig = []) {
+                container.innerHTML = '';
+                for (let i = 0; i < count; i++) {
+                    const col = document.createElement('div');
+                    col.className = 'column-dropzone';
+                    
+                    if(childrenConfig[i] && childrenConfig[i].length > 0) {
+                        childrenConfig[i].forEach(childConf => createElement(childConf, col));
+                    } else {
+                        col.innerHTML = '<div class="placeholder">Arrastra aquí</div>';
+                    }
+                    
+                    col.addEventListener('dragover', e => {
+                        e.preventDefault(); e.stopPropagation();
+                        const dragging = document.querySelector('.canvas-element.dragging');
+                        if (!dragging) return;
+                        if (dragging.contains(col)) return;
+                        col.classList.add('col-drag-over');
+                        const afterElement = getDragAfterElement(col, e.clientY);
+                        if (afterElement) { col.insertBefore(dragging, afterElement); } 
+                        else { col.appendChild(dragging); }
+                    });
+                    col.addEventListener('dragleave', e => { e.preventDefault(); col.classList.remove('col-drag-over'); });
+                    col.addEventListener('drop', e => {
+                        e.preventDefault(); e.stopPropagation();
+                        col.classList.remove('col-drag-over');
+                        if (document.querySelector('.canvas-element.dragging')) return;
+                        const type = e.dataTransfer.getData('text/plain');
+                        if (!type) return;
+                        createElement({type: type}, col);
+                        saveState();
+                    });
+                    container.appendChild(col);
+                }
+            }
+            
+            // --- Element Selection & Properties Panel ---
+            document.body.addEventListener('click', e => {
+                const targetElement = e.target.closest('.canvas-element');
+                if (targetElement) { selectElement(targetElement); } 
+                else if (!e.target.closest('.properties-panel') && !e.target.closest('.blocks-panel') && !e.target.closest('header')) { 
+                    clearPropertiesPanel(); 
+                }
+            });
+
+            function selectElement(element) {
+                if (selectedElement) selectedElement.classList.remove('selected');
+                selectedElement = element;
+                selectedElement.classList.add('selected');
+                updatePropertiesPanel();
+            }
+            
+            function clearPropertiesPanel() {
+                if(selectedElement) selectedElement.classList.remove('selected');
+                selectedElement = null;
+                propertiesPanel.innerHTML = '<p style="color: #65676b; font-size: 0.9rem;">Selecciona un elemento para editar sus propiedades.</p>';
+            }
+
+            function updatePropertiesPanel() {
+                if (!selectedElement) { clearPropertiesPanel(); return; }
+                const type = selectedElement.dataset.type;
+                
+                let specificProps = '';
+                
+                switch (type) {
+                    case 'text':
+                        specificProps = `
+                            <div class="prop-group">
+                                <label for="text-line-height">Interlineado</label>
+                                <input type="number" id="text-line-height" step="0.1" min="1" value="${selectedElement.dataset.lineHeight}">
+                            </div>
+                            <div class="prop-group">
+                                <label for="text-content">Contenido (HTML)</label>
+                                <textarea id="text-content">${selectedElement.querySelector('.content').innerHTML}</textarea>
+                                <small style="color: #65676b;">Tip: Usa variables como {{nombre}}, {{email}}, etc.</small>
+                            </div>
+                        `;
+                        break;
+                    case 'image':
+                        specificProps = `
+                            <div class="prop-group">
+                                <label for="img-width">Ancho: <span id="img-width-value">${selectedElement.dataset.width}%</span></label>
+                                <input type="range" id="img-width" min="10" max="100" value="${selectedElement.dataset.width}">
+                            </div>
+                            <div class="prop-group">
+                                <label for="img-src">URL de la Imagen</label>
+                                <input type="url" id="img-src" value="${selectedElement.dataset.src}">
+                            </div>
+                            <div class="prop-group">
+                                <label for="img-upload">O Subir Imagen Local</label>
+                                <input type="file" id="img-upload" accept="image/*">
+                                <small style="color: #65676b;">La imagen se convertirá a base64</small>
+                            </div>
+                            <div class="prop-group">
+                                <label for="img-alt">Texto Alternativo</label>
+                                <input type="text" id="img-alt" value="${selectedElement.dataset.alt}">
+                            </div>
+                        `;
+                        break;
+                    case 'button':
+                        specificProps = `
+                            <div class="prop-group">
+                                <label for="btn-text">Texto del Botón</label>
+                                <input type="text" id="btn-text" value="${selectedElement.querySelector('.content').textContent}">
+                            </div>
+                            <div class="prop-group">
+                                <label for="btn-href">URL del Enlace</label>
+                                <input type="url" id="btn-href" value="${selectedElement.dataset.href}">
+                            </div>
+                            
+                            <div class="prop-row">
+                                <div class="prop-group">
+                                    <label for="btn-bg-color">Color Fondo</label>
+                                    <input type="color" id="btn-bg-color" value="${selectedElement.dataset.backgroundColor}">
+                                </div>
+                                <div class="prop-group">
+                                    <label for="btn-text-color">Color Texto</label>
+                                    <input type="color" id="btn-text-color" value="${selectedElement.dataset.textColor}">
+                                </div>
+                            </div>
+                            
+                            <div class="prop-group">
+                                <label>Colores Predefinidos</label>
+                                <div class="color-presets" id="btn-color-presets"></div>
+                            </div>
+
+                            <div class="prop-row">
+                                <div class="prop-group">
+                                    <label for="btn-font-size">Tamaño Fuente (px)</label>
+                                    <input type="number" id="btn-font-size" value="${selectedElement.dataset.fontSize}">
+                                </div>
+                                <div class="prop-group">
+                                    <label for="btn-font-weight">Grosor</label>
+                                    <select id="btn-font-weight">
+                                        <option value="400" ${selectedElement.dataset.fontWeight === '400' ? 'selected' : ''}>Normal</option>
+                                        <option value="600" ${selectedElement.dataset.fontWeight === '600' ? 'selected' : ''}>Semi-Negrita</option>
+                                        <option value="700" ${selectedElement.dataset.fontWeight === '700' ? 'selected' : ''}>Negrita</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="prop-group">
+                                <label for="btn-radius">Esquinas Redondeadas: <span id="btn-radius-val">${selectedElement.dataset.buttonBorderRadius}px</span></label>
+                                <input type="range" id="btn-radius" min="0" max="50" value="${selectedElement.dataset.buttonBorderRadius}">
+                            </div>
+
+                            <div class="prop-row">
+                                <div class="prop-group">
+                                    <label for="btn-padding-v">Espacio V (px)</label>
+                                    <input type="number" id="btn-padding-v" value="${selectedElement.dataset.paddingV}">
+                                </div>
+                                <div class="prop-group">
+                                    <label for="btn-padding-h">Espacio H (px)</label>
+                                    <input type="number" id="btn-padding-h" value="${selectedElement.dataset.paddingH}">
+                                </div>
+                            </div>
+
+                            <div class="prop-group">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="btn-full-width" ${selectedElement.dataset.fullWidth === 'true' ? 'checked' : ''}>
+                                    Ancho completo del contenedor
+                                </label>
+                            </div>
+                            
+                            <div class="prop-group">
+                                <button class="style-button" id="save-btn-style" style="width: 100%;">💾 Guardar Estilo</button>
+                            </div>
+                            <div id="saved-btn-styles" class="saved-styles"></div>
+                        `;
+                        break;
+                    case 'separator':
+                        specificProps = `
+                            <div class="prop-group">
+                                <label for="sep-style">Estilo de Línea</label>
+                                <select id="sep-style">
+                                    <option value="solid" ${selectedElement.dataset.separatorBorderStyle === 'solid' ? 'selected' : ''}>Sólida</option>
+                                    <option value="dotted" ${selectedElement.dataset.separatorBorderStyle === 'dotted' ? 'selected' : ''}>Punteada</option>
+                                    <option value="dashed" ${selectedElement.dataset.separatorBorderStyle === 'dashed' ? 'selected' : ''}>Rayada</option>
+                                    <option value="double" ${selectedElement.dataset.separatorBorderStyle === 'double' ? 'selected' : ''}>Doble</option>
+                                    <option value="none" ${selectedElement.dataset.separatorBorderStyle === 'none' ? 'selected' : ''}>Espacio Vacío</option>
+                                </select>
+                            </div>
+                            <div class="prop-group" id="sep-color-group">
+                                <label for="sep-color">Color</label>
+                                <input type="color" id="sep-color" value="${selectedElement.dataset.color}">
+                            </div>
+                        `;
+                        break;
+                    case 'spacer':
+                        specificProps = `
+                            <div class="prop-group">
+                                <label for="spacer-height">Altura: <span id="spacer-height-val">${selectedElement.dataset.height}px</span></label>
+                                <input type="range" id="spacer-height" min="10" max="200" value="${selectedElement.dataset.height}">
+                            </div>
+                        `;
+                        break;
+                    case 'columns':
+                        specificProps = `
+                            <div class="prop-group">
+                                <label for="col-count">Número de Columnas</label>
+                                <select id="col-count">
+                                    <option value="2" ${selectedElement.dataset.columns === '2' ? 'selected' : ''}>2</option>
+                                    <option value="3" ${selectedElement.dataset.columns === '3' ? 'selected' : ''}>3</option>
+                                    <option value="4" ${selectedElement.dataset.columns === '4' ? 'selected' : ''}>4</option>
+                                </select>
+                            </div>
+                        `;
+                        break;
+                }
+                
+                // Common properties
+                let commonProps = '';
+                
+                if (['text', 'image', 'button'].includes(type)) {
+                    commonProps += `
+                        <div class="prop-group">
+                            <label for="block-align">Alineación del Bloque</label>
+                            <select id="block-align">
+                                <option value="left" ${selectedElement.dataset.align === 'left' ? 'selected' : ''}>Izquierda</option>
+                                <option value="center" ${selectedElement.dataset.align === 'center' ? 'selected' : ''}>Centro</option>
+                                <option value="right" ${selectedElement.dataset.align === 'right' ? 'selected' : ''}>Derecha</option>
+                            </select>
+                        </div>
+                    `;
+                }
+
+                // Margins
+                commonProps += `
+                    <hr>
+                    <h3 style="font-size: 0.9rem; margin: 0 0 1rem 0;">Espaciado Externo</h3>
+                    <div class="prop-row">
+                        <div class="prop-group">
+                            <label for="margin-top">Margen Sup. (px)</label>
+                            <input type="number" id="margin-top" min="0" value="${selectedElement.dataset.marginTop}">
+                        </div>
+                        <div class="prop-group">
+                            <label for="margin-bottom">Margen Inf. (px)</label>
+                            <input type="number" id="margin-bottom" min="0" value="${selectedElement.dataset.marginBottom}">
+                        </div>
+                    </div>
+                `;
+                
+                if (type !== 'button' && type !== 'columns' && type !== 'spacer') {
+                    commonProps += `
+                        <div class="prop-group">
+                            <label for="link-href">Enlazar todo el bloque (URL)</label>
+                            <input type="url" id="link-href" value="${selectedElement.dataset.linkHref || ''}" placeholder="https://ejemplo.com">
+                        </div>
+                    `;
+                }
+                
+                // Advanced styling
+                let advancedProps = `
+                    <h3 style="font-size: 0.9rem; margin: 1.5rem 0 1rem 0;">Estilo Avanzado</h3>
+                    
+                    <div class="prop-group">
+                        <label for="elem-bg-color">Color de Fondo</label>
+                        <input type="color" id="elem-bg-color" value="${selectedElement.dataset.bgColor === 'transparent' ? '#ffffff' : selectedElement.dataset.bgColor}">
+                        <label style="display: flex; align-items: center; gap: 8px; margin-top: 5px; cursor: pointer;">
+                            <input type="checkbox" id="elem-bg-transparent" ${selectedElement.dataset.bgColor === 'transparent' ? 'checked' : ''}>
+                            Fondo Transparente
+                        </label>
+                    </div>
+                    
+                    <div class="prop-group">
+                        <label for="elem-padding-internal">Espaciado Interno: <span id="elem-padding-val">${selectedElement.dataset.paddingInternal}px</span></label>
+                        <input type="range" id="elem-padding-internal" min="0" max="50" value="${selectedElement.dataset.paddingInternal}">
+                    </div>
+                    
+                    <div class="prop-row">
+                        <div class="prop-group">
+                            <label for="elem-border-width">Grosor Borde (px)</label>
+                            <input type="number" id="elem-border-width" min="0" max="10" value="${selectedElement.dataset.borderWidth}">
+                        </div>
+                        <div class="prop-group">
+                            <label for="elem-border-color">Color Borde</label>
+                            <input type="color" id="elem-border-color" value="${selectedElement.dataset.borderColor}">
+                        </div>
+                    </div>
+                    
+                    <div class="prop-group">
+                        <label for="elem-border-style">Estilo Borde</label>
+                        <select id="elem-border-style">
+                            <option value="solid" ${selectedElement.dataset.borderStyle === 'solid' ? 'selected' : ''}>Sólido</option>
+                            <option value="dashed" ${selectedElement.dataset.borderStyle === 'dashed' ? 'selected' : ''}>Rayado</option>
+                            <option value="dotted" ${selectedElement.dataset.borderStyle === 'dotted' ? 'selected' : ''}>Punteado</option>
+                            <option value="double" ${selectedElement.dataset.borderStyle === 'double' ? 'selected' : ''}>Doble</option>
+                        </select>
+                    </div>
+                    
+                    <div class="prop-group">
+                        <label for="elem-border-radius">Esquinas Redondeadas: <span id="elem-border-radius-val">${selectedElement.dataset.borderRadius}px</span></label>
+                        <input type="range" id="elem-border-radius" min="0" max="50" value="${selectedElement.dataset.borderRadius}">
+                    </div>
+                    
+                    <div class="prop-group">
+                        <label for="elem-box-shadow">Sombra</label>
+                        <select id="elem-box-shadow">
+                            <option value="none" ${selectedElement.dataset.boxShadow === 'none' ? 'selected' : ''}>Sin Sombra</option>
+                            <option value="0 2px 4px rgba(0,0,0,0.1)" ${selectedElement.dataset.boxShadow === '0 2px 4px rgba(0,0,0,0.1)' ? 'selected' : ''}>Suave</option>
+                            <option value="0 4px 8px rgba(0,0,0,0.15)" ${selectedElement.dataset.boxShadow === '0 4px 8px rgba(0,0,0,0.15)' ? 'selected' : ''}>Media</option>
+                            <option value="0 8px 16px rgba(0,0,0,0.2)" ${selectedElement.dataset.boxShadow === '0 8px 16px rgba(0,0,0,0.2)' ? 'selected' : ''}>Fuerte</option>
+                        </select>
+                    </div>
+                `;
+
+                propertiesPanel.innerHTML = `
+                    <div class="prop-tabs">
+                        <button class="prop-tab active" data-tab="specific">Contenido</button>
+                        <button class="prop-tab" data-tab="style">Estilo</button>
+                    </div>
+                    <div class="tab-content active" id="tab-specific">
+                        ${specificProps}
+                        ${commonProps}
+                    </div>
+                    <div class="tab-content" id="tab-style">
+                        ${advancedProps}
+                    </div>
+                `;
+                
+                // Tab switching
+                document.querySelectorAll('.prop-tab').forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        document.querySelectorAll('.prop-tab').forEach(t => t.classList.remove('active'));
+                        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                        tab.classList.add('active');
+                        document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+                    });
+                });
+                
+                addPropertyListeners();
+            }
+
+            function addPropertyListeners() {
+                if (!selectedElement) return;
+                const type = selectedElement.dataset.type;
+                const content = selectedElement.querySelector('.content');
+
+                const syncDataset = (key, val, styleProp = null, unit = '') => {
+                    selectedElement.dataset[key] = val;
+                    if (styleProp) content.style[styleProp] = val + unit;
+                };
+
+                // Common align
+                const alignSelect = document.getElementById('block-align');
+                if (alignSelect) {
+                    alignSelect.addEventListener('input', e => {
+                        selectedElement.dataset.align = e.target.value;
+                        selectedElement.style.textAlign = e.target.value;
+                        saveState();
+                    });
+                }
+
+                // Margins
+                const marginTop = document.getElementById('margin-top');
+                const marginBottom = document.getElementById('margin-bottom');
+                if (marginTop) {
+                    marginTop.addEventListener('input', e => {
+                        selectedElement.dataset.marginTop = e.target.value;
+                        selectedElement.style.paddingTop = `${e.target.value}px`;
+                        saveState();
+                    });
+                }
+                if (marginBottom) {
+                    marginBottom.addEventListener('input', e => {
+                        selectedElement.dataset.marginBottom = e.target.value;
+                        selectedElement.style.paddingBottom = `${e.target.value}px`;
+                        saveState();
+                    });
+                }
+
+                // Advanced styling
+                const bgColorInput = document.getElementById('elem-bg-color');
+                const bgTransparent = document.getElementById('elem-bg-transparent');
+                if (bgColorInput && bgTransparent) {
+                    bgColorInput.addEventListener('input', e => {
+                        if (!bgTransparent.checked) {
+                            selectedElement.dataset.bgColor = e.target.value;
+                            applyElementStyles(selectedElement);
+                            saveState();
+                        }
+                    });
+                    bgTransparent.addEventListener('change', e => {
+                        selectedElement.dataset.bgColor = e.target.checked ? 'transparent' : bgColorInput.value;
+                        bgColorInput.disabled = e.target.checked;
+                        applyElementStyles(selectedElement);
+                        saveState();
+                    });
+                }
+
+                const paddingInternal = document.getElementById('elem-padding-internal');
+                if (paddingInternal) {
+                    paddingInternal.addEventListener('input', e => {
+                        selectedElement.dataset.paddingInternal = e.target.value;
+                        document.getElementById('elem-padding-val').textContent = `${e.target.value}px`;
+                        applyElementStyles(selectedElement);
+                        saveState();
+                    });
+                }
+
+                const borderWidth = document.getElementById('elem-border-width');
+                const borderColor = document.getElementById('elem-border-color');
+                const borderStyle = document.getElementById('elem-border-style');
+                if (borderWidth) borderWidth.addEventListener('input', e => {
+                    selectedElement.dataset.borderWidth = e.target.value;
+                    applyElementStyles(selectedElement);
+                    saveState();
+                });
+                if (borderColor) borderColor.addEventListener('input', e => {
+                    selectedElement.dataset.borderColor = e.target.value;
+                    applyElementStyles(selectedElement);
+                    saveState();
+                });
+                if (borderStyle) borderStyle.addEventListener('change', e => {
+                    selectedElement.dataset.borderStyle = e.target.value;
+                    applyElementStyles(selectedElement);
+                    saveState();
+                });
+
+                const borderRadius = document.getElementById('elem-border-radius');
+                if (borderRadius) {
+                    borderRadius.addEventListener('input', e => {
+                        selectedElement.dataset.borderRadius = e.target.value;
+                        document.getElementById('elem-border-radius-val').textContent = `${e.target.value}px`;
+                        applyElementStyles(selectedElement);
+                        saveState();
+                    });
+                }
+
+                const boxShadow = document.getElementById('elem-box-shadow');
+                if (boxShadow) {
+                    boxShadow.addEventListener('change', e => {
+                        selectedElement.dataset.boxShadow = e.target.value;
+                        applyElementStyles(selectedElement);
+                        saveState();
+                    });
+                }
+
+                // Type-specific listeners
+                if (type === 'text') {
+                    const lineHeight = document.getElementById('text-line-height');
+                    const textContent = document.getElementById('text-content');
+                    if (lineHeight) lineHeight.addEventListener('input', e => {
+                        syncDataset('lineHeight', e.target.value, 'lineHeight');
+                        saveState();
+                    });
+                    if (textContent) textContent.addEventListener('input', e => {
+                        content.innerHTML = e.target.value;
+                        saveState();
+                    });
+                }
+
+                if (type === 'image') {
+                    const imgWidth = document.getElementById('img-width');
+                    const imgSrc = document.getElementById('img-src');
+                    const imgAlt = document.getElementById('img-alt');
+                    const imgUpload = document.getElementById('img-upload');
+                    
+                    if (imgWidth) imgWidth.addEventListener('input', e => {
+                        selectedElement.dataset.width = e.target.value;
+                        document.getElementById('img-width-value').textContent = `${e.target.value}%`;
+                        content.querySelector('img').style.width = `${e.target.value}%`;
+                        saveState();
+                    });
+                    if (imgSrc) imgSrc.addEventListener('input', e => {
+                        selectedElement.dataset.src = e.target.value;
+                        content.querySelector('img').src = e.target.value;
+                        saveState();
+                    });
+                    if (imgAlt) imgAlt.addEventListener('input', e => {
+                        selectedElement.dataset.alt = e.target.value;
+                        saveState();
+                    });
+                    if (imgUpload) imgUpload.addEventListener('change', e => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                const base64 = event.target.result;
+                                selectedElement.dataset.src = base64;
+                                content.querySelector('img').src = base64;
+                                document.getElementById('img-src').value = base64;
+                                saveState();
+                                showNotification('Imagen cargada correctamente');
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                }
+
+                if (type === 'button') {
+                    const btnText = document.getElementById('btn-text');
+                    const btnHref = document.getElementById('btn-href');
+                    const btnBgColor = document.getElementById('btn-bg-color');
+                    const btnTextColor = document.getElementById('btn-text-color');
+                    const btnFontSize = document.getElementById('btn-font-size');
+                    const btnFontWeight = document.getElementById('btn-font-weight');
+                    const btnRadius = document.getElementById('btn-radius');
+                    const btnPaddingV = document.getElementById('btn-padding-v');
+                    const btnPaddingH = document.getElementById('btn-padding-h');
+                    const btnFullWidth = document.getElementById('btn-full-width');
+                    
+                    if (btnText) btnText.addEventListener('input', e => {
+                        content.textContent = e.target.value;
+                        saveState();
+                    });
+                    if (btnHref) btnHref.addEventListener('input', e => {
+                        selectedElement.dataset.href = e.target.value;
+                        saveState();
+                    });
+                    if (btnBgColor) btnBgColor.addEventListener('input', e => {
+                        syncDataset('backgroundColor', e.target.value, 'backgroundColor');
+                        saveState();
+                    });
+                    if (btnTextColor) btnTextColor.addEventListener('input', e => {
+                        syncDataset('textColor', e.target.value, 'color');
+                        saveState();
+                    });
+                    if (btnFontSize) btnFontSize.addEventListener('input', e => {
+                        syncDataset('fontSize', e.target.value, 'fontSize', 'px');
+                        saveState();
+                    });
+                    if (btnFontWeight) btnFontWeight.addEventListener('change', e => {
+                        syncDataset('fontWeight', e.target.value, 'fontWeight');
+                        saveState();
+                    });
+                    if (btnRadius) btnRadius.addEventListener('input', e => {
+                        document.getElementById('btn-radius-val').textContent = `${e.target.value}px`;
+                        syncDataset('buttonBorderRadius', e.target.value, 'borderRadius', 'px');
+                        saveState();
+                    });
+                    
+                    const updateBtnPadding = () => {
+                        const v = btnPaddingV.value;
+                        const h = btnPaddingH.value;
+                        selectedElement.dataset.paddingV = v;
+                        selectedElement.dataset.paddingH = h;
+                        content.style.padding = `${v}px ${h}px`;
+                        saveState();
+                    };
+                    if (btnPaddingV) btnPaddingV.addEventListener('input', updateBtnPadding);
+                    if (btnPaddingH) btnPaddingH.addEventListener('input', updateBtnPadding);
+                    
+                    if (btnFullWidth) btnFullWidth.addEventListener('change', e => {
+                        selectedElement.dataset.fullWidth = e.target.checked;
+                        if (e.target.checked) {
+                            content.style.display = 'block';
+                            content.style.width = '100%';
+                        } else {
+                            content.style.display = 'inline-block';
+                            content.style.width = 'auto';
+                        }
+                        saveState();
+                    });
+                    
+                    // Color presets
+                    const presetsContainer = document.getElementById('btn-color-presets');
+                    if (presetsContainer) {
+                        COLOR_PRESETS.forEach(color => {
+                            const preset = document.createElement('div');
+                            preset.className = 'color-preset';
+                            preset.style.backgroundColor = color;
+                            preset.addEventListener('click', () => {
+                                btnBgColor.value = color;
+                                syncDataset('backgroundColor', color, 'backgroundColor');
+                                saveState();
+                            });
+                            presetsContainer.appendChild(preset);
+                        });
+                    }
+                    
+                    // Save/Load button styles
+                    const saveBtnStyle = document.getElementById('save-btn-style');
+                    if (saveBtnStyle) {
+                        saveBtnStyle.addEventListener('click', () => {
+                            const styleName = prompt('Nombre para este estilo de botón:');
+                            if (styleName) {
+                                const styles = JSON.parse(localStorage.getItem('buttonStyles') || '{}');
+                                styles[styleName] = {
+                                    backgroundColor: selectedElement.dataset.backgroundColor,
+                                    textColor: selectedElement.dataset.textColor,
+                                    fontSize: selectedElement.dataset.fontSize,
+                                    fontWeight: selectedElement.dataset.fontWeight,
+                                    buttonBorderRadius: selectedElement.dataset.buttonBorderRadius,
+                                    paddingV: selectedElement.dataset.paddingV,
+                                    paddingH: selectedElement.dataset.paddingH
+                                };
+                                localStorage.setItem('buttonStyles', JSON.stringify(styles));
+                                showNotification(`Estilo "${styleName}" guardado`);
+                                updatePropertiesPanel();
+                            }
+                        });
+                    }
+                    
+                    loadSavedButtonStyles();
+                }
+
+                if (type === 'separator') {
+                    const sepColor = document.getElementById('sep-color');
+                    const sepStyle = document.getElementById('sep-style');
+                    
+                    if (sepColor) sepColor.addEventListener('input', e => {
+                        selectedElement.dataset.color = e.target.value;
+                        content.style.borderBottomColor = e.target.value;
+                        saveState();
+                    });
+                    if (sepStyle) sepStyle.addEventListener('change', e => {
+                        selectedElement.dataset.separatorBorderStyle = e.target.value;
+                        content.style.borderBottomStyle = e.target.value;
+                        document.getElementById('sep-color-group').style.display = e.target.value === 'none' ? 'none' : 'block';
+                        saveState();
+                    });
+                }
+                
+                if (type === 'spacer') {
+                    const spacerHeight = document.getElementById('spacer-height');
+                    if (spacerHeight) {
+                        spacerHeight.addEventListener('input', e => {
+                            selectedElement.dataset.height = e.target.value;
+                            content.style.height = `${e.target.value}px`;
+                            content.textContent = `${e.target.value}px`;
+                            document.getElementById('spacer-height-val').textContent = `${e.target.value}px`;
+                            saveState();
+                        });
+                    }
+                }
+
+                if (type === 'columns') {
+                    const colCount = document.getElementById('col-count');
+                    if (colCount) {
+                        colCount.addEventListener('change', e => {
+                            selectedElement.dataset.columns = e.target.value;
+                            createColumns(content, parseInt(e.target.value, 10));
+                            saveState();
+                        });
+                    }
+                }
+
+                const linkInput = document.getElementById('link-href');
+                if(linkInput) {
+                    linkInput.addEventListener('input', e => {
+                        selectedElement.dataset.linkHref = e.target.value;
+                        saveState();
+                    });
+                }
+            }
+
+            function loadSavedButtonStyles() {
+                const container = document.getElementById('saved-btn-styles');
+                if (!container) return;
+                
+                const styles = JSON.parse(localStorage.getItem('buttonStyles') || '{}');
+                container.innerHTML = '';
+                
+                Object.keys(styles).forEach(name => {
+                    const styleDiv = document.createElement('div');
+                    styleDiv.className = 'saved-style';
+                    styleDiv.innerHTML = `
+                        <span>${name}</span>
+                        <button class="delete-style">×</button>
+                    `;
+                    
+                    styleDiv.addEventListener('click', (e) => {
+                        if (e.target.classList.contains('delete-style')) {
+                            delete styles[name];
+                            localStorage.setItem('buttonStyles', JSON.stringify(styles));
+                            loadSavedButtonStyles();
+                            showNotification(`Estilo "${name}" eliminado`);
+                        } else {
+                            const style = styles[name];
+                            Object.keys(style).forEach(key => {
+                                selectedElement.dataset[key] = style[key];
+                            });
+                            const content = selectedElement.querySelector('.content');
+                            content.style.backgroundColor = style.backgroundColor;
+                            content.style.color = style.textColor;
+                            content.style.fontSize = `${style.fontSize}px`;
+                            content.style.fontWeight = style.fontWeight;
+                            content.style.borderRadius = `${style.buttonBorderRadius}px`;
+                            content.style.padding = `${style.paddingV}px ${style.paddingH}px`;
+                            updatePropertiesPanel();
+                            showNotification(`Estilo "${name}" aplicado`);
+                        }
+                    });
+                    
+                    container.appendChild(styleDiv);
+                });
+            }
+
+            // --- HTML Export Logic ---
+            document.getElementById('export-html').addEventListener('click', () => {
+                const html = generateFullExportHTML();
+                const blob = new Blob([html], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'mailing_profesional.html';
+                a.click();
+                showNotification('HTML exportado correctamente');
+            });
+
+            function generateFullExportHTML() {
+                const width = widthSlider.value;
+                const bgColor = bgColorPicker.value;
+                
+                let emailHTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mailing</title>
+    <!--[if mso]>
+    <style type="text/css">
+        .btn-table { border-collapse: separate !important; }
+    </style>
+    <![endif]-->
+</head>
+<body style="margin: 0; padding: 20px 0; background-color: ${bgColor}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <center>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: ${bgColor};">
+            <tr>
+                <td align="center" valign="top">
+                    <table width="${width}" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; max-width: ${width}px; width: 100%; border-collapse: collapse;">`;
+
+                canvas.querySelectorAll(':scope > .canvas-element').forEach(el => {
+                    emailHTML += generateEmailElementHTML(el);
+                });
+
+                emailHTML += `
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </center>`;
+
+                const jsonState = JSON.stringify(serializeCanvasState());
+                emailHTML += `\n    <script id="editor-state" type="application/json">${jsonState}<\/script>\n</body>\n</html>`;
+                
+                return emailHTML;
+            }
+
+            function generateEmailElementHTML(element) {
+                const type = element.dataset.type;
+                const align = element.dataset.align || 'left';
+                const mt = element.dataset.marginTop || '15';
+                const mb = element.dataset.marginBottom || '15';
+                const linkHref = element.dataset.linkHref || '';
+                
+                const bgColor = element.dataset.bgColor || 'transparent';
+                const borderWidth = element.dataset.borderWidth || '0';
+                const borderColor = element.dataset.borderColor || '#000000';
+                const borderStyle = element.dataset.borderStyle || 'solid';
+                const borderRadius = element.dataset.borderRadius || '0';
+                const paddingInternal = element.dataset.paddingInternal || '0';
+                const boxShadow = element.dataset.boxShadow || 'none';
+                
+                const containerStyle = `background-color: ${bgColor}; border: ${borderWidth}px ${borderStyle} ${borderColor}; border-radius: ${borderRadius}px; padding: ${paddingInternal}px; box-shadow: ${boxShadow};`;
+
+                let innerContent = '';
+                const contentNode = element.querySelector('.content');
+
+                if (type === 'text') {
+                    innerContent = `<div style="line-height: ${element.dataset.lineHeight}; text-align: ${align}; color: #333333; font-size: 16px; ${containerStyle}">${contentNode.innerHTML}</div>`;
+                } else if (type === 'image') {
+                    const w = element.dataset.width || '100';
+                    const imgAlign = align === 'center' ? '0 auto' : (align === 'right' ? '0 0 0 auto' : '0');
+                    innerContent = `<div style="${containerStyle}"><img src="${element.dataset.src}" alt="${element.dataset.alt}" width="${w}%" style="width: ${w}%; max-width: 100%; height: auto; display: block; border: 0; margin: ${imgAlign};" /></div>`;
+                } else if (type === 'button') {
+                    const bg = element.dataset.backgroundColor;
+                    const tc = element.dataset.textColor;
+                    const fs = element.dataset.fontSize;
+                    const fw = element.dataset.fontWeight;
+                    const br = element.dataset.buttonBorderRadius;
+                    const pv = element.dataset.paddingV;
+                    const ph = element.dataset.paddingH;
+                    const full = element.dataset.fullWidth === 'true';
+
+                    innerContent = `
+                        <div style="${containerStyle}">
+                            <table align="${align}" border="0" cellpadding="0" cellspacing="0" class="btn-table" style="border-collapse: separate; ${full ? 'width: 100%;' : ''}">
+                                <tr>
+                                    <td align="center" bgcolor="${bg}" style="border-radius: ${br}px; color: ${tc}; font-family: sans-serif; font-size: ${fs}px; font-weight: ${fw}; text-align: center; background-color: ${bg};">
+                                        <a href="${element.dataset.href}" style="color: ${tc}; text-decoration: none; padding: ${pv}px ${ph}px; border-radius: ${br}px; display: block; border: 1px solid ${bg};">
+                                            ${contentNode.textContent}
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>`;
+                } else if (type === 'separator') {
+                    const style = element.dataset.separatorBorderStyle;
+                    const line = style === 'none' ? '' : `<div style="border-bottom: 2px ${style} ${element.dataset.color}; height: 0px; line-height: 0px; font-size: 0px;">&nbsp;</div>`;
+                    innerContent = `<div style="padding: 10px 0; ${containerStyle}">${line}</div>`;
+                } else if (type === 'spacer') {
+                    const h = element.dataset.height || '40';
+                    innerContent = `<div style="height: ${h}px; line-height: ${h}px; font-size: 0;">&nbsp;</div>`;
+                } else if (type === 'columns') {
+                    const cols = element.querySelectorAll('.column-dropzone');
+                    const count = cols.length;
+                    const colWidth = Math.floor(100 / count);
+                    innerContent = `<div style="${containerStyle}"><table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>`;
+                    cols.forEach(col => {
+                        innerContent += `<td width="${colWidth}%" valign="top" style="padding: 0 10px;">`;
+                        col.querySelectorAll(':scope > .canvas-element').forEach(cel => {
+                            innerContent += generateEmailElementHTML(cel);
+                        });
+                        innerContent += `</td>`;
+                    });
+                    innerContent += `</tr></table></div>`;
+                }
+
+                if (linkHref && type !== 'button' && type !== 'columns') {
+                    innerContent = `<a href="${linkHref}" style="text-decoration: none; color: inherit;">${innerContent}</a>`;
+                }
+
+                return `<tr><td style="padding: ${mt}px 20px ${mb}px 20px;">${innerContent}</td></tr>`;
+            }
+
+            function serializeCanvasState() {
+                const config = { 
+                    width: widthSlider.value, 
+                    bgColor: bgColorPicker.value, 
+                    elements: [] 
+                };
+                
+                const serializeContainer = (container) => {
+                    const elements = [];
+                    container.querySelectorAll(':scope > .canvas-element').forEach(el => {
+                        const data = { ...el.dataset };
+                        if (data.type === 'text') data.innerHTML = el.querySelector('.content').innerHTML;
+                        else if (data.type === 'button') data.text = el.querySelector('.content').textContent;
+                        else if (data.type === 'columns') {
+                            data.children = [];
+                            el.querySelectorAll('.column-dropzone').forEach(col => data.children.push(serializeContainer(col)));
+                        }
+                        elements.push(data);
+                    });
+                    return elements;
+                };
+                
+                config.elements = serializeContainer(canvas);
+                return config;
+            }
+
+            function handleHtmlImport(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const doc = new DOMParser().parseFromString(event.target.result, 'text/html');
+                    const scriptTag = doc.getElementById('editor-state');
+                    if (scriptTag) {
+                        loadCanvasState(JSON.parse(scriptTag.textContent));
+                        showNotification('Archivo importado correctamente');
+                    } else {
+                        showNotification('Archivo no compatible - falta el estado del editor', true);
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            function loadCanvasState(state, addToHistory = true) {
+                widthSlider.value = state.width;
+                widthValue.textContent = `${state.width}px`;
+                canvas.style.maxWidth = `${state.width}px`;
+                bgColorPicker.value = state.bgColor;
+                canvasArea.style.backgroundColor = state.bgColor;
+                canvas.innerHTML = '';
+                state.elements.forEach(conf => createElement(conf, canvas));
+                clearPropertiesPanel();
+                if (addToHistory) saveState();
+            }
+
+            // Initial state
+            saveState();
+        });
+    </script>
+</body>
+</html>
