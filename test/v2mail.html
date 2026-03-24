@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Mailings Local</title>
+    <style>
+        /* --- General Styles --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: #ffffff;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #dcdfe3;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+            color: #1c1e21;
+        }
+        
+        .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .control-group { display: flex; align-items: center; gap: 10px; }
+        .control-group label { font-weight: 600; font-size: 0.9rem; }
+        #width-slider { width: 120px; }
+        #width-value { font-weight: 600; min-width: 40px; }
+        #bg-color-picker { width: 40px; height: 30px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; padding: 2px; background-color: white; }
+        .header-controls button { border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        .style-button { background-color: #e4e6eb; color: #050505; }
+        .style-button:hover { background-color: #d8dbdf; }
+        .export-button { background-color: #0c67e6; color: white; }
+        .export-button:hover { background-color: #0a58c4; }
+
+        /* --- Main Content Area --- */
+        .main-container { display: flex; flex-grow: 1; overflow: hidden; }
+        .blocks-panel { width: 250px; padding: 1.5rem; background-color: #ffffff; border-right: 1px solid #dcdfe3; overflow-y: auto; flex-shrink: 0; }
+        .blocks-panel h2 { margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid #e0e0e0; padding-bottom: 0.5rem; }
+        .block { padding: 1rem; margin-bottom: 1rem; background-color: #f7f7f7; border: 1px dashed #cccccc; border-radius: 6px; cursor: grab; text-align: center; font-weight: 500; transition: background-color 0.2s, border-color 0.2s; }
+        .block:hover { background-color: #e9e9e9; border-color: #a0a0a0; }
+        .block:active { cursor: grabbing; background-color: #dcdfe3; }
+        
+        /* --- Canvas (Center) --- */
+        .canvas-area { flex-grow: 1; padding: 2rem; overflow-y: auto; background-color: #f0f2f5; transition: background-color 0.3s, padding 0.3s; }
+        .canvas { max-width: 600px; min-height: 500px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 0 15px rgba(0,0,0,0.1); border: 1px solid #dcdfe3; padding: 10px; transition: box-shadow 0.3s, border 0.3s, max-width 0.3s; }
+        .canvas .placeholder { display: flex; justify-content: center; align-items: center; height: 150px; border: 2px dashed #dcdfe3; color: #a0a0a0; border-radius: 5px; }
+        
+        /* Clean view mode styles */
+        body.clean-mode .canvas-area { background-color: #ffffff; padding: 0; }
+        body.clean-mode .canvas { box-shadow: none; border: 1px solid transparent; padding: 0; }
+
+        .canvas-element { padding: 10px; margin-bottom: 10px; cursor: pointer; position: relative; border: 1px solid transparent; transition: border-color 0.2s, opacity 0.2s, padding 0.2s, text-align 0.2s; }
+        .canvas-element:hover { border: 1px dashed #0c67e6; }
+        .canvas-element.selected { border: 1px solid #0c67e6; }
+        .canvas-element.dragging { opacity: 0.5; border: 1px dashed #a0a0a0; }
+        .canvas-element .delete-btn { position: absolute; top: -10px; right: -10px; background: #e60c0c; color: white; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 14px; display: none; justify-content: center; align-items: center; z-index: 10; }
+        .canvas-element.selected .delete-btn { display: flex; }
+
+        /* Specific Element Styles */
+        .canvas-element[data-type="image"] .content { display: flex; justify-content: center; align-items: center; width: 100%; height: auto; min-height: 120px; background-color: #f0f0f0; border: 1px solid #ccc; color: #666; font-size: 1rem; font-weight: bold; }
+        .canvas-element[data-type="image"] .content img { width: 100%; height: auto; display: block; }
+        .canvas-element[data-type="button"] .content { background-color: #007bff; color: white; padding: 10px 20px; text-align: center; border-radius: 5px; text-decoration: none; display: inline-block; }
+        .canvas-element[data-type="separator"] .content { height: 0; border-bottom-width: 2px; transition: border-style 0.2s; }
+        
+        /* Columns styles */
+        .canvas-element[data-type="columns"] > .content { display: flex; gap: 10px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; }
+        .column-dropzone { flex: 1; min-height: 100px; padding: 10px; border: 2px dashed #e0e0e0; border-radius: 4px; transition: background-color 0.2s; display: flex; flex-direction: column; }
+        .column-dropzone.col-drag-over { background-color: #e6f7ff; }
+        .column-dropzone .placeholder { font-size: 0.9rem; color: #a0a0a0; text-align: center; margin: auto; }
+
+        /* --- Properties Panel (Right) --- */
+        .properties-panel { width: 320px; padding: 1.5rem; background-color: #ffffff; border-left: 1px solid #dcdfe3; overflow-y: auto; flex-shrink: 0; }
+        .properties-panel h2 { margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid #e0e0e0; padding-bottom: 0.5rem; }
+        .prop-group { margin-bottom: 1.5rem; }
+        .prop-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.9rem; }
+        .prop-group input, .prop-group textarea, .prop-group select { width: 100%; padding: 0.5rem; border: 1px solid #dcdfe3; border-radius: 4px; box-sizing: border-box; font-size: 0.9rem; }
+        .prop-group textarea { min-height: 100px; resize: vertical; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Editor de Mailings</h1>
+        <div class="header-controls">
+            <div class="control-group">
+                <label for="width-slider">Ancho:</label>
+                <input type="range" id="width-slider" min="600" max="800" step="10" value="600">
+                <span id="width-value">600px</span>
+            </div>
+            <div class="control-group">
+                <label for="bg-color-picker">Fondo:</label>
+                <input type="color" id="bg-color-picker" value="#f0f2f5">
+            </div>
+            <button class="style-button" id="import-html-btn">Importar HTML</button>
+            <input type="file" id="html-importer" accept=".html" style="display: none;">
+            <button class="style-button" id="clean-bg-btn">Fondo Limpio</button>
+            <button class="export-button" id="export-html">Exportar HTML</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside class="blocks-panel">
+            <h2>Bloques</h2>
+            <div class="block" draggable="true" data-type="text">Texto</div>
+            <div class="block" draggable="true" data-type="image">Imagen</div>
+            <div class="block" draggable="true" data-type="button">Botón</div>
+            <div class="block" draggable="true" data-type="separator">Separador</div>
+            <div class="block" draggable="true" data-type="columns">Columnas</div>
+        </aside>
+
+        <main class="canvas-area" id="canvas-area">
+            <div class="canvas" id="canvas">
+                <div class="placeholder">Arrastra un bloque aquí para comenzar</div>
+            </div>
+        </main>
+
+        <aside class="properties-panel" id="properties-panel">
+            <h2>Propiedades</h2>
+            <div id="properties-content">
+                <p>Selecciona un elemento para editar sus propiedades.</p>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('canvas');
+            const canvasArea = document.getElementById('canvas-area');
+            const blocks = document.querySelectorAll('.block');
+            const propertiesPanel = document.getElementById('properties-content');
+            const cleanBgBtn = document.getElementById('clean-bg-btn');
+            const widthSlider = document.getElementById('width-slider');
+            const widthValue = document.getElementById('width-value');
+            const importBtn = document.getElementById('import-html-btn');
+            const importInput = document.getElementById('html-importer');
+            const bgColorPicker = document.getElementById('bg-color-picker');
+            
+            let selectedElement = null;
+
+            // --- UI Controls ---
+            cleanBgBtn.addEventListener('click', () => {
+                document.body.classList.toggle('clean-mode');
+                cleanBgBtn.textContent = document.body.classList.contains('clean-mode') ? 'Fondo Original' : 'Fondo Limpio';
+            });
+            
+            widthSlider.addEventListener('input', (e) => {
+                const newWidth = e.target.value;
+                widthValue.textContent = `${newWidth}px`;
+                canvas.style.maxWidth = `${newWidth}px`;
+            });
+
+            bgColorPicker.addEventListener('input', e => {
+                canvasArea.style.backgroundColor = e.target.value;
+            });
+            
+            importBtn.addEventListener('click', () => importInput.click());
+            importInput.addEventListener('change', handleHtmlImport);
+
+            // --- Drag & Drop Logic ---
+            blocks.forEach(block => {
+                block.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', block.dataset.type));
+            });
+            
+            canvas.addEventListener('dragover', e => {
+                e.preventDefault();
+                const dragging = document.querySelector('.canvas-element.dragging');
+                if (!dragging) return;
+                
+                const afterElement = getDragAfterElement(e.currentTarget, e.clientY);
+                if (afterElement) {
+                    e.currentTarget.insertBefore(dragging, afterElement);
+                } else {
+                    e.currentTarget.appendChild(dragging);
+                }
+            });
+
+            canvas.addEventListener('drop', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (document.querySelector('.canvas-element.dragging')) return;
+                const type = e.dataTransfer.getData('text/plain');
+                if (!type) return;
+                const placeholder = canvas.querySelector('.placeholder');
+                if (placeholder) placeholder.remove();
+                createElement({type: type}, canvas);
+            });
+
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll(':scope > .canvas-element:not(.dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset, element: child };
+                    }
+                    return closest;
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+            
+            // --- Element Creation ---
+            function createElement(config, parent) {
+                if (!parent) parent = canvas;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'canvas-element';
+                wrapper.dataset.type = config.type;
+                wrapper.draggable = true;
+                wrapper.dataset.linkHref = config.linkHref || '';
+                wrapper.dataset.align = config.align || (config.type === 'button' || config.type === 'image' ? 'center' : 'left');
+                wrapper.style.textAlign = wrapper.dataset.align;
+
+                // Margins
+                wrapper.dataset.marginTop = config.marginTop || '10';
+                wrapper.dataset.marginBottom = config.marginBottom || '10';
+                wrapper.style.paddingTop = `${wrapper.dataset.marginTop}px`;
+                wrapper.style.paddingBottom = `${wrapper.dataset.marginBottom}px`;
+                
+                wrapper.addEventListener('dragstart', e => { e.stopPropagation(); setTimeout(() => wrapper.classList.add('dragging'), 0); });
+                wrapper.addEventListener('dragend', e => { e.stopPropagation(); wrapper.classList.remove('dragging'); });
+                
+                const content = document.createElement('div');
+                content.className = 'content';
+
+                switch (config.type) {
+                    case 'text':
+                        content.innerHTML = config.innerHTML || '<p>Este es un texto de ejemplo.</p>';
+                        wrapper.dataset.lineHeight = config.lineHeight || '1.5';
+                        content.style.lineHeight = wrapper.dataset.lineHeight;
+                        break;
+                    case 'image':
+                        const img = document.createElement('img');
+                        img.src = config.src || 'https://placehold.co/600x200/EEE/31343C?text=Placeholder';
+                        content.innerHTML = '';
+                        content.appendChild(img);
+                        wrapper.dataset.src = img.src;
+                        wrapper.dataset.alt = config.alt || 'Imagen descriptiva';
+                        wrapper.dataset.width = config.width || '100';
+                        img.style.width = `${wrapper.dataset.width}%`;
+                        break;
+                    case 'button':
+                        content.textContent = config.text || 'Texto del Botón';
+                        wrapper.dataset.href = config.href || '#';
+                        wrapper.dataset.backgroundColor = config.backgroundColor || '#007bff';
+                        content.style.backgroundColor = wrapper.dataset.backgroundColor;
+                        break;
+                    case 'separator':
+                        wrapper.dataset.color = config.color || '#cccccc';
+                        wrapper.dataset.borderStyle = config.borderStyle || 'solid';
+                        wrapper.dataset.paddingTop = config.paddingTop || '10';
+                        wrapper.dataset.paddingBottom = config.paddingBottom || '10';
+                        content.style.borderBottomStyle = wrapper.dataset.borderStyle;
+                        content.style.borderBottomColor = wrapper.dataset.color;
+                        content.style.paddingTop = `${wrapper.dataset.paddingTop}px`;
+                        content.style.paddingBottom = `${wrapper.dataset.paddingBottom}px`;
+                        break;
+                    case 'columns':
+                        wrapper.dataset.columns = config.columns || '2';
+                        createColumns(content, parseInt(wrapper.dataset.columns, 10), config.children);
+                        break;
+                }
+                
+                wrapper.appendChild(content);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    const parentContainer = wrapper.parentElement;
+                    wrapper.remove();
+                    clearPropertiesPanel();
+                    if(parentContainer.children.length === 0 && parentContainer.classList.contains('column-dropzone')){
+                        parentContainer.innerHTML = '<div class="placeholder">Arrastra aquí</div>';
+                    }
+                    if (canvas.children.length === 0) {
+                        canvas.innerHTML = '<div class="placeholder">Arrastra un bloque aquí para comenzar</div>';
+                    }
+                });
+                wrapper.appendChild(deleteBtn);
+
+                parent.appendChild(wrapper);
+                const placeholder = parent.querySelector('.placeholder');
+                if (placeholder) placeholder.remove();
+            }
+
+            function createColumns(container, count, childrenConfig = []) {
+                container.innerHTML = '';
+                for (let i = 0; i < count; i++) {
+                    const col = document.createElement('div');
+                    col.className = 'column-dropzone';
+                    
+                    if(childrenConfig[i] && childrenConfig[i].length > 0) {
+                        childrenConfig[i].forEach(childConf => createElement(childConf, col));
+                    } else {
+                        col.innerHTML = '<div class="placeholder">Arrastra aquí</div>';
+                    }
+                    
+                    col.addEventListener('dragover', e => {
+                        e.preventDefault(); e.stopPropagation();
+                        const dragging = document.querySelector('.canvas-element.dragging');
+                        if (!dragging) return;
+                        if (dragging.contains(col)) return;
+                        col.classList.add('col-drag-over');
+                        const afterElement = getDragAfterElement(col, e.clientY);
+                        if (afterElement) { col.insertBefore(dragging, afterElement); } 
+                        else { col.appendChild(dragging); }
+                    });
+                    col.addEventListener('dragleave', e => { e.preventDefault(); col.classList.remove('col-drag-over'); });
+                    col.addEventListener('drop', e => {
+                        e.preventDefault(); e.stopPropagation();
+                        col.classList.remove('col-drag-over');
+                        if (document.querySelector('.canvas-element.dragging')) return;
+                        const type = e.dataTransfer.getData('text/plain');
+                        if (!type) return;
+                        createElement({type: type}, col);
+                    });
+                    container.appendChild(col);
+                }
+            }
+            
+            // --- Element Selection & Properties Panel ---
+            document.body.addEventListener('click', e => {
+                const targetElement = e.target.closest('.canvas-element');
+                if (targetElement) { selectElement(targetElement); } 
+                else if (!e.target.closest('.properties-panel') && !e.target.closest('.blocks-panel') && !e.target.closest('header')) { 
+                    clearPropertiesPanel(); 
+                }
+            });
+
+            function selectElement(element) {
+                if (selectedElement) selectedElement.classList.remove('selected');
+                selectedElement = element;
+                selectedElement.classList.add('selected');
+                updatePropertiesPanel();
+            }
+            
+            function clearPropertiesPanel() {
+                if(selectedElement) selectedElement.classList.remove('selected');
+                selectedElement = null;
+                propertiesPanel.innerHTML = '<p>Selecciona un elemento para editar sus propiedades.</p>';
+            }
+
+            function updatePropertiesPanel() {
+                if (!selectedElement) { clearPropertiesPanel(); return; }
+                const type = selectedElement.dataset.type;
+                let propsHtml = '';
+                
+                switch (type) {
+                    case 'text':
+                        propsHtml = `
+                            <div class="prop-group">
+                                <label for="text-line-height">Interlineado</label>
+                                <input type="number" id="text-line-height" step="0.1" min="1" value="${selectedElement.dataset.lineHeight}">
+                            </div>
+                            <div class="prop-group">
+                                <label for="text-content">Contenido (HTML)</label>
+                                <textarea id="text-content">${selectedElement.querySelector('.content').innerHTML}</textarea>
+                            </div>
+                        `;
+                        break;
+                    case 'image':
+                        propsHtml = `
+                            <div class="prop-group">
+                                <label for="img-width">Ancho: <span id="img-width-value">${selectedElement.dataset.width}%</span></label>
+                                <input type="range" id="img-width" min="10" max="100" value="${selectedElement.dataset.width}">
+                            </div>
+                            <div class="prop-group"><label for="img-src">URL de la Imagen</label><input type="url" id="img-src" value="${selectedElement.dataset.src}"></div>
+                            <div class="prop-group"><label for="img-alt">Texto Alternativo</label><input type="text" id="img-alt" value="${selectedElement.dataset.alt}"></div>
+                        `;
+                        break;
+                    case 'button':
+                        propsHtml = `
+                            <div class="prop-group"><label for="btn-text">Texto</label><input type="text" id="btn-text" value="${selectedElement.querySelector('.content').textContent}"></div>
+                            <div class="prop-group"><label for="btn-href">URL del Enlace</label><input type="url" id="btn-href" value="${selectedElement.dataset.href}"></div>
+                            <div class="prop-group"><label for="btn-color">Color de Fondo</label><input type="color" id="btn-color" value="${selectedElement.dataset.backgroundColor}"></div>
+                        `;
+                        break;
+                    case 'separator':
+                        propsHtml = `
+                            <div class="prop-group">
+                                <label for="sep-style">Estilo de Línea</label>
+                                <select id="sep-style">
+                                    <option value="solid" ${selectedElement.dataset.borderStyle === 'solid' ? 'selected' : ''}>Sólida</option>
+                                    <option value="dotted" ${selectedElement.dataset.borderStyle === 'dotted' ? 'selected' : ''}>Punteada</option>
+                                    <option value="dashed" ${selectedElement.dataset.borderStyle === 'dashed' ? 'selected' : ''}>Rayada</option>
+                                    <option value="double" ${selectedElement.dataset.borderStyle === 'double' ? 'selected' : ''}>Doble</option>
+                                    <option value="none" ${selectedElement.dataset.borderStyle === 'none' ? 'selected' : ''}>Ninguna (Espaciador)</option>
+                                </select>
+                            </div>
+                            <div class="prop-group" id="sep-color-group">
+                                <label for="sep-color">Color</label>
+                                <input type="color" id="sep-color" value="${selectedElement.dataset.color}">
+                            </div>
+                            <div class="prop-group">
+                                <label for="sep-padding-top">Espacio Interno Superior (px)</label>
+                                <input type="number" id="sep-padding-top" min="0" value="${selectedElement.dataset.paddingTop}">
+                            </div>
+                            <div class="prop-group">
+                                <label for="sep-padding-bottom">Espacio Interno Inferior (px)</label>
+                                <input type="number" id="sep-padding-bottom" min="0" value="${selectedElement.dataset.paddingBottom}">
+                            </div>
+                        `;
+                        break;
+                    case 'columns':
+                        propsHtml = `
+                            <div class="prop-group">
+                                <label for="col-count">Número de Columnas</label>
+                                <select id="col-count">
+                                    <option value="2" ${selectedElement.dataset.columns === '2' ? 'selected' : ''}>2</option>
+                                    <option value="3" ${selectedElement.dataset.columns === '3' ? 'selected' : ''}>3</option>
+                                    <option value="4" ${selectedElement.dataset.columns === '4' ? 'selected' : ''}>4</option>
+                                </select>
+                            </div>
+                        `;
+                        break;
+                }
+                
+                if (['text', 'image', 'button'].includes(type)) {
+                    propsHtml = `
+                        <div class="prop-group">
+                            <label for="block-align">Alineación</label>
+                            <select id="block-align">
+                                <option value="left" ${selectedElement.dataset.align === 'left' ? 'selected' : ''}>Izquierda</option>
+                                <option value="center" ${selectedElement.dataset.align === 'center' ? 'selected' : ''}>Centro</option>
+                                <option value="right" ${selectedElement.dataset.align === 'right' ? 'selected' : ''}>Derecha</option>
+                            </select>
+                        </div>
+                    ` + propsHtml;
+                }
+
+                // Add general margin controls
+                propsHtml += `
+                    <hr>
+                    <div class="prop-group">
+                        <label for="margin-top">Margen Superior (px)</label>
+                        <input type="number" id="margin-top" min="0" value="${selectedElement.dataset.marginTop}">
+                    </div>
+                    <div class="prop-group">
+                        <label for="margin-bottom">Margen Inferior (px)</label>
+                        <input type="number" id="margin-bottom" min="0" value="${selectedElement.dataset.marginBottom}">
+                    </div>
+                `;
+                
+                if (type !== 'button' && type !== 'columns') {
+                    propsHtml += `
+                        <hr>
+                        <div class="prop-group">
+                            <label for="link-href">URL de Enlace (Opcional)</label>
+                            <input type="url" id="link-href" value="${selectedElement.dataset.linkHref || ''}" placeholder="https://ejemplo.com">
+                        </div>
+                    `;
+                }
+
+                propertiesPanel.innerHTML = propsHtml;
+                addPropertyListeners();
+            }
+
+            function addPropertyListeners() {
+                if (!selectedElement) return;
+                const type = selectedElement.dataset.type;
+
+                const alignSelect = document.getElementById('block-align');
+                if (alignSelect) {
+                    alignSelect.value = selectedElement.dataset.align;
+                    alignSelect.addEventListener('input', e => {
+                        selectedElement.dataset.align = e.target.value;
+                        selectedElement.style.textAlign = e.target.value;
+                    });
+                }
+
+                // Margins
+                const marginTopInput = document.getElementById('margin-top');
+                if (marginTopInput) {
+                    marginTopInput.addEventListener('input', e => {
+                        const val = e.target.value || 0;
+                        selectedElement.dataset.marginTop = val;
+                        selectedElement.style.paddingTop = `${val}px`;
+                    });
+                }
+
+                const marginBottomInput = document.getElementById('margin-bottom');
+                if (marginBottomInput) {
+                    marginBottomInput.addEventListener('input', e => {
+                        const val = e.target.value || 0;
+                        selectedElement.dataset.marginBottom = val;
+                        selectedElement.style.paddingBottom = `${val}px`;
+                    });
+                }
+
+                if (type === 'text') {
+                    const lineHeightInput = document.getElementById('text-line-height');
+                    lineHeightInput.addEventListener('input', e => {
+                        const val = e.target.value || 1.5;
+                        selectedElement.dataset.lineHeight = val;
+                        selectedElement.querySelector('.content').style.lineHeight = val;
+                    });
+                    document.getElementById('text-content').addEventListener('input', e => { 
+                        selectedElement.querySelector('.content').innerHTML = e.target.value; 
+                    });
+                }
+
+                if (type === 'image') {
+                    const imgWidthSlider = document.getElementById('img-width');
+                    const imgWidthValue = document.getElementById('img-width-value');
+                    imgWidthSlider.addEventListener('input', e => {
+                        const width = e.target.value;
+                        selectedElement.dataset.width = width;
+                        imgWidthValue.textContent = `${width}%`;
+                        selectedElement.querySelector('img').style.width = `${width}%`;
+                    });
+                    document.getElementById('img-src').addEventListener('input', e => {
+                        selectedElement.dataset.src = e.target.value;
+                        selectedElement.querySelector('img').src = e.target.value;
+                    });
+                    document.getElementById('img-alt').addEventListener('input', e => { 
+                        selectedElement.dataset.alt = e.target.value; 
+                    });
+                }
+                if (type === 'button') {
+                    document.getElementById('btn-text').addEventListener('input', e => { 
+                        selectedElement.querySelector('.content').textContent = e.target.value; 
+                    });
+                    document.getElementById('btn-href').addEventListener('input', e => { 
+                        selectedElement.dataset.href = e.target.value; 
+                    });
+                    document.getElementById('btn-color').addEventListener('input', e => {
+                        selectedElement.dataset.backgroundColor = e.target.value;
+                        selectedElement.querySelector('.content').style.backgroundColor = e.target.value;
+                    });
+                }
+                if (type === 'separator') {
+                    const colorGroup = document.getElementById('sep-color-group');
+                    const styleSelect = document.getElementById('sep-style');
+                    const toggleColorPicker = () => { colorGroup.style.display = styleSelect.value === 'none' ? 'none' : 'block'; };
+                    styleSelect.value = selectedElement.dataset.borderStyle;
+                    toggleColorPicker();
+
+                    document.getElementById('sep-color').addEventListener('input', e => {
+                        selectedElement.dataset.color = e.target.value;
+                        selectedElement.querySelector('.content').style.borderBottomColor = e.target.value;
+                    });
+                    styleSelect.addEventListener('change', e => {
+                        selectedElement.dataset.borderStyle = e.target.value;
+                        selectedElement.querySelector('.content').style.borderBottomStyle = e.target.value;
+                        toggleColorPicker();
+                    });
+                    document.getElementById('sep-padding-top').addEventListener('input', e => {
+                        const val = e.target.value || 0;
+                        selectedElement.dataset.paddingTop = val;
+                        selectedElement.querySelector('.content').style.paddingTop = `${val}px`;
+                    });
+                    document.getElementById('sep-padding-bottom').addEventListener('input', e => {
+                        const val = e.target.value || 0;
+                        selectedElement.dataset.paddingBottom = val;
+                        selectedElement.querySelector('.content').style.paddingBottom = `${val}px`;
+                    });
+                }
+                if (type === 'columns') {
+                    const select = document.getElementById('col-count');
+                    select.value = selectedElement.dataset.columns;
+                    select.addEventListener('change', e => {
+                        selectedElement.dataset.columns = e.target.value;
+                        createColumns(selectedElement.querySelector('.content'), parseInt(e.target.value, 10));
+                    });
+                }
+
+                const linkInput = document.getElementById('link-href');
+                if(linkInput) {
+                    linkInput.addEventListener('input', e => { 
+                        selectedElement.dataset.linkHref = e.target.value; 
+                    });
+                }
+            }
+
+            // --- HTML Export Logic ---
+            document.getElementById('export-html').addEventListener('click', () => {
+                const width = widthSlider.value;
+                const bgColor = bgColorPicker.value;
+                
+                let emailHTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mailing</title>
+</head>
+<body style="margin: 0; padding: 20px 0; background-color: ${bgColor}; font-family: sans-serif;">
+    <center>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: ${bgColor};">
+            <tr>
+                <td align="center" valign="top">
+                    <table width="${width}" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; max-width: ${width}px; width: 100%; border-collapse: collapse;">`;
+
+                const elements = canvas.querySelectorAll(':scope > .canvas-element');
+                elements.forEach(el => {
+                    emailHTML += generateEmailElementHTML(el);
+                });
+
+                emailHTML += `
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </center>`;
+
+                const jsonState = JSON.stringify(serializeCanvasState());
+                emailHTML += `\n    <script id="editor-state" type="application/json">${jsonState}<\/script>\n</body>\n</html>`;
+
+                const blob = new Blob([emailHTML], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'mailing.html';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+
+            function generateEmailElementHTML(element) {
+                const type = element.dataset.type;
+                const align = element.dataset.align || 'left';
+                const mt = element.dataset.marginTop || '10';
+                const mb = element.dataset.marginBottom || '10';
+                const linkHref = element.dataset.linkHref || '';
+
+                let innerContent = '';
+                const contentNode = element.querySelector('.content');
+
+                if (type === 'text') {
+                    const lh = element.dataset.lineHeight || '1.5';
+                    innerContent = `<div style="line-height: ${lh}; text-align: ${align}; color: #333333;">${contentNode.innerHTML}</div>`;
+                } else if (type === 'image') {
+                    const src = element.dataset.src || '';
+                    const alt = element.dataset.alt || '';
+                    const w = element.dataset.width || '100';
+                    innerContent = `<img src="${src}" alt="${alt}" width="${w}%" style="width: ${w}%; max-width: 100%; height: auto; display: block; border: 0;" />`;
+                    if (align === 'center') innerContent = `<center>${innerContent}</center>`;
+                    else if (align === 'right') innerContent = `<div style="text-align: right;">${innerContent}</div>`;
+                } else if (type === 'button') {
+                    const href = element.dataset.href || '#';
+                    const bg = element.dataset.backgroundColor || '#007bff';
+                    const text = contentNode.textContent || 'Botón';
+                    innerContent = `<div style="text-align: ${align};"><a href="${href}" style="background-color: ${bg}; color: #ffffff; padding: 12px 24px; text-decoration: none; display: inline-block; border-radius: 5px; font-weight: bold; font-family: sans-serif;">${text}</a></div>`;
+                } else if (type === 'separator') {
+                    const color = element.dataset.color || '#cccccc';
+                    const style = element.dataset.borderStyle || 'solid';
+                    const pt = element.dataset.paddingTop || '10';
+                    const pb = element.dataset.paddingBottom || '10';
+                    const lineBlock = style === 'none' ? '' : `<div style="border-bottom: 2px ${style} ${color}; height: 0px; font-size: 0px; line-height: 0px;">&nbsp;</div>`;
+                    innerContent = `<div style="padding-top: ${pt}px; padding-bottom: ${pb}px;">${lineBlock}</div>`;
+                } else if (type === 'columns') {
+                    const cols = element.querySelectorAll('.column-dropzone');
+                    const count = cols.length;
+                    const colWidth = Math.floor(100 / count);
+                    
+                    innerContent = `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%;"><tr>`;
+                    cols.forEach(col => {
+                        innerContent += `<td width="${colWidth}%" valign="top" style="width: ${colWidth}%; padding: 0 5px;">`;
+                        innerContent += `<table width="100%" cellpadding="0" cellspacing="0" border="0">`;
+                        const colElements = col.querySelectorAll(':scope > .canvas-element');
+                        colElements.forEach(cel => {
+                            innerContent += generateEmailElementHTML(cel);
+                        });
+                        innerContent += `</table></td>`;
+                    });
+                    innerContent += `</tr></table>`;
+                }
+
+                if (linkHref && type !== 'button' && type !== 'columns') {
+                    innerContent = `<a href="${linkHref}" style="text-decoration: none; color: inherit; display: block;">${innerContent}</a>`;
+                }
+
+                return `
+                <tr>
+                    <td style="padding-top: ${mt}px; padding-bottom: ${mb}px; padding-left: 20px; padding-right: 20px;">
+                        ${innerContent}
+                    </td>
+                </tr>`;
+            }
+
+            function serializeCanvasState() {
+                const config = {
+                    width: widthSlider.value,
+                    bgColor: bgColorPicker.value,
+                    elements: []
+                };
+
+                const serializeContainer = (container) => {
+                    const elements = [];
+                    container.querySelectorAll(':scope > .canvas-element').forEach(el => {
+                        const data = { ...el.dataset };
+                        if (data.type === 'text') {
+                            data.innerHTML = el.querySelector('.content').innerHTML;
+                        } else if (data.type === 'button') {
+                            data.text = el.querySelector('.content').textContent;
+                        } else if (data.type === 'columns') {
+                            data.children = [];
+                            el.querySelectorAll('.column-dropzone').forEach(col => {
+                                data.children.push(serializeContainer(col));
+                            });
+                        }
+                        elements.push(data);
+                    });
+                    return elements;
+                };
+
+                config.elements = serializeContainer(canvas);
+                return config;
+            }
+
+            // --- HTML Import Logic ---
+            function handleHtmlImport(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const content = event.target.result;
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(content, 'text/html');
+                    
+                    const scriptTag = doc.getElementById('editor-state');
+                    if (scriptTag) {
+                        try {
+                            const state = JSON.parse(scriptTag.textContent);
+                            loadCanvasState(state);
+                        } catch (err) {
+                            alert("Error al procesar el archivo.");
+                        }
+                    } else {
+                        alert("Este archivo no contiene datos de edición compatibles.");
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            }
+
+            function loadCanvasState(state) {
+                if(state.width) {
+                    widthSlider.value = state.width;
+                    widthValue.textContent = `${state.width}px`;
+                    canvas.style.maxWidth = `${state.width}px`;
+                }
+                if(state.bgColor) {
+                    bgColorPicker.value = state.bgColor;
+                    canvasArea.style.backgroundColor = state.bgColor;
+                }
+
+                canvas.innerHTML = '';
+                clearPropertiesPanel();
+
+                if (state.elements && state.elements.length > 0) {
+                    state.elements.forEach(conf => createElement(conf, canvas));
+                } else {
+                    canvas.innerHTML = '<div class="placeholder">Arrastra un bloque aquí para comenzar</div>';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
