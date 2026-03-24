@@ -673,109 +673,141 @@
                 }
             }
 
-            function parseRowToConfig(td) {
-                const potentialLink = td.querySelector('a');
-                const contentNode = (potentialLink && potentialLink.parentElement === td) ? potentialLink : td;
-                const linkHref = (potentialLink && potentialLink.parentElement === td && !td.querySelector('a[style*="background-color"]')) ? potentialLink.href : '';
-                const align = td.style.textAlign || 'left';
-                
-                // Extract general margins
-                const marginTop = td.style.paddingTop ? td.style.paddingTop.replace('px', '') : '10';
-                const marginBottom = td.style.paddingBottom ? td.style.paddingBottom.replace('px', '') : '10';
+           <script>
+document.addEventListener('DOMContentLoaded', () => {
 
+    // ==============================
+    // TODO TU JS ORIGINAL...
+    // ==============================
 
-                if (td.style.lineHeight && td.style.lineHeight !== '0') { // Added check for lineHeight !== '0' to differentiate from separator
-                    return { type: 'text', innerHTML: contentNode.innerHTML, align: align, lineHeight: td.style.lineHeight, linkHref: linkHref, marginTop: marginTop, marginBottom: marginBottom };
-                }
+    // ==============================
+    // 🔥 REEMPLAZAR SOLO ESTA FUNCIÓN
+    // ==============================
 
-                const img = contentNode.querySelector('img');
-                if (img) {
-                    return { type: 'image', src: img.src, alt: img.alt, linkHref: linkHref, align: align, width: parseInt(img.style.width, 10) || 100, marginTop: marginTop, marginBottom: marginBottom };
-                }
+    function parseRowToConfig(td) {
+        const potentialLink = td.querySelector('a');
+        const contentNode = (potentialLink && potentialLink.parentElement === td) ? potentialLink : td;
+        const linkHref = (potentialLink && potentialLink.parentElement === td && !td.querySelector('a[style*="background-color"]')) ? potentialLink.href : '';
+        const align = td.style.textAlign || 'left';
 
-                const buttonLink = td.querySelector('a[style*="background-color"]');
-                if (buttonLink) {
-                    return {
-                        type: 'button',
-                        text: buttonLink.textContent.trim(),
-                        href: buttonLink.href,
-                        backgroundColor: buttonLink.style.backgroundColor,
-                        align: align,
-                        marginTop: marginTop,
-                        marginBottom: marginBottom
-                    };
-                }
+        const marginTop = td.style.paddingTop ? td.style.paddingTop.replace('px', '') : '10';
+        const marginBottom = td.style.paddingBottom ? td.style.paddingBottom.replace('px', '') : '10';
 
-                const columnsTable = contentNode.querySelector(':scope > table');
-                if (columnsTable && columnsTable.querySelector('td[width]')) {
-                    const cols = columnsTable.querySelectorAll(':scope > tbody > tr > td');
+        // TEXT
+        if (td.style.lineHeight && td.style.lineHeight !== '0') {
+            return {
+                type: 'text',
+                innerHTML: contentNode.innerHTML,
+                align,
+                lineHeight: td.style.lineHeight,
+                linkHref,
+                marginTop,
+                marginBottom
+            };
+        }
+
+        // IMAGE
+        const img = contentNode.querySelector('img');
+        if (img) {
+            return {
+                type: 'image',
+                src: img.src,
+                alt: img.alt,
+                linkHref,
+                align,
+                width: parseInt(img.style.width, 10) || 100,
+                marginTop,
+                marginBottom
+            };
+        }
+
+        // BUTTON
+        const buttonLink = td.querySelector('a[style*="background-color"]');
+        if (buttonLink) {
+            return {
+                type: 'button',
+                text: buttonLink.textContent.trim(),
+                href: buttonLink.href,
+                backgroundColor: buttonLink.style.backgroundColor,
+                align,
+                marginTop,
+                marginBottom
+            };
+        }
+
+        // ==========================
+        // 🔥 FIX COLUMNAS (IMPORTANTE)
+        // ==========================
+        const columnsTable = contentNode.querySelector('table');
+
+        if (columnsTable) {
+            const firstRow = columnsTable.querySelector('tr');
+
+            if (firstRow) {
+                const cols = firstRow.querySelectorAll('td');
+
+                if (cols.length > 1) {
                     const children = Array.from(cols).map(colTd => {
-                        const innerTableRows = colTd.querySelector(':scope > table > tbody').children;
-                        return Array.from(innerTableRows).map(row => parseRowToConfig(row.firstElementChild)).filter(Boolean);
-                    });
-                    return { type: 'columns', columns: cols.length, children: children, linkHref: linkHref, marginTop: marginTop, marginBottom: marginBottom };
-                }
-                
-                // Separator detection
-                if (td.style.fontSize === '0px' || (td.style.paddingTop && td.style.paddingBottom && td.querySelector('div[style*="padding-top"]'))) {
-                    const innerDiv = td.querySelector('div[style*="padding-top"]');
-                    const innerPaddingTop = innerDiv ? innerDiv.style.paddingTop.replace('px', '') : '10';
-                    const innerPaddingBottom = innerDiv ? innerDiv.style.paddingBottom.replace('px', '') : '10';
+                        const innerTable = colTd.querySelector('table');
 
-                    const borderTd = innerDiv ? innerDiv.querySelector('td[style*="border-bottom"]') : null;
-                    const borderStyleRaw = borderTd ? borderTd.style.borderBottom : '2px none transparent';
-                    const [,, borderStyle, borderColor] = borderStyleRaw.split(' ');
+                        if (!innerTable) return [];
+
+                        const innerRows = innerTable.querySelectorAll('tr');
+
+                        return Array.from(innerRows)
+                            .map(row => {
+                                const cell = row.querySelector('td');
+                                return cell ? parseRowToConfig(cell) : null;
+                            })
+                            .filter(Boolean);
+                    });
+
                     return {
-                        type: 'separator',
-                        paddingTop: innerPaddingTop, // This is the separator's internal padding
-                        paddingBottom: innerPaddingBottom, // This is the separator's internal padding
-                        borderStyle: borderTd ? borderStyle : 'none',
-                        color: borderTd ? borderColor : '#cccccc',
-                        linkHref: linkHref,
-                        marginTop: marginTop, // General margin for the TD
-                        marginBottom: marginBottom // General margin for the TD
+                        type: 'columns',
+                        columns: cols.length,
+                        children,
+                        linkHref,
+                        marginTop,
+                        marginBottom
                     };
                 }
+            }
+        }
 
-                return null;
+        // SEPARATOR
+        if (td.style.fontSize === '0px' || td.querySelector('div[style*="padding-top"]')) {
+            const innerDiv = td.querySelector('div[style*="padding-top"]');
+            const innerPaddingTop = innerDiv ? innerDiv.style.paddingTop.replace('px', '') : '10';
+            const innerPaddingBottom = innerDiv ? innerDiv.style.paddingBottom.replace('px', '') : '10';
+
+            const borderTd = innerDiv ? innerDiv.querySelector('td[style*="border-bottom"]') : null;
+
+            let borderStyle = 'none';
+            let borderColor = '#cccccc';
+
+            if (borderTd) {
+                const parts = borderTd.style.borderBottom.split(' ');
+                borderStyle = parts[2] || 'solid';
+                borderColor = parts[3] || '#cccccc';
             }
 
-            // Custom message box function
-            function displayMessageBox(message) {
-                const messageBox = document.createElement('div');
-                messageBox.style.cssText = `
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background-color: white;
-                    padding: 20px;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                    z-index: 1000;
-                    text-align: center;
-                    font-family: Arial, sans-serif;
-                    color: #333;
-                `;
-                messageBox.innerHTML = `
-                    <p>${message}</p>
-                    <button style="
-                        background-color: #0c67e6;
-                        color: white;
-                        border: none;
-                        padding: 10px 20px;
-                        border-radius: 5px;
-                        cursor: pointer;
-                        margin-top: 15px;
-                    ">Cerrar</button>
-                `;
-                document.body.appendChild(messageBox);
+            return {
+                type: 'separator',
+                paddingTop: innerPaddingTop,
+                paddingBottom: innerPaddingBottom,
+                borderStyle,
+                color: borderColor,
+                linkHref,
+                marginTop,
+                marginBottom
+            };
+        }
 
-                messageBox.querySelector('button').addEventListener('click', () => {
-                    messageBox.remove();
-                });
-            }
-        });
-    </script>
+        return null;
+    }
+
+});
+</script>
+
 </body>
 </html>
