@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Mailings Local - Islas y Bordes Redondeados</title>
+    <style>
+        /* --- General Styles --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: #ffffff;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #dcdfe3;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        header h1 { font-size: 1.5rem; margin: 0; color: #1c1e21; }
+        
+        .header-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .control-group { display: flex; align-items: center; gap: 10px; }
+        .control-group label { font-weight: 600; font-size: 0.9rem; }
+        #width-slider { width: 120px; }
+        #width-value { font-weight: 600; min-width: 40px; }
+        #bg-color-picker { width: 40px; height: 30px; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; padding: 2px; background-color: white; }
+        .header-controls button { border: none; padding: 0.75rem 1.5rem; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
+        .style-button { background-color: #e4e6eb; color: #050505; }
+        .style-button:hover { background-color: #d8dbdf; }
+        .export-button { background-color: #0c67e6; color: white; }
+        .export-button:hover { background-color: #0a58c4; }
+
+        /* --- Main Content Area --- */
+        .main-container { display: flex; flex-grow: 1; overflow: hidden; }
+        
+        .blocks-panel { width: 250px; padding: 1.5rem; background-color: #ffffff; border-right: 1px solid #dcdfe3; overflow-y: auto; flex-shrink: 0; }
+        .blocks-panel h2 { margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid #e0e0e0; padding-bottom: 0.5rem; }
+        .block { padding: 1rem; margin-bottom: 1rem; background-color: #f7f7f7; border: 1px dashed #cccccc; border-radius: 6px; cursor: grab; text-align: center; font-weight: 500; transition: background-color 0.2s, border-color 0.2s; }
+        .block:hover { background-color: #e9e9e9; border-color: #a0a0a0; }
+        .block:active { cursor: grabbing; background-color: #dcdfe3; }
+        
+        /* --- Canvas Area (Center) --- */
+        .canvas-area { flex-grow: 1; padding: 2rem; overflow-y: auto; background-color: #f0f2f5; transition: background-color 0.3s; display: flex; flex-direction: column; align-items: center; }
+        #email-wrapper { display: flex; flex-direction: column; width: 100%; align-items: center; }
+        
+        /* Island Styles */
+        .email-island { 
+            background-color: #ffffff; 
+            border: 2px solid transparent;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            transition: all 0.2s; 
+            position: relative; 
+            box-sizing: border-box; 
+            min-height: 100px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        .email-island:hover { border: 2px dashed rgba(12, 103, 230, 0.4); }
+        .email-island.selected { border: 2px solid #0c67e6; box-shadow: 0 0 0 4px rgba(12, 103, 230, 0.1); }
+        .email-island.drag-over { background-color: #f4f8ff; border: 2px dashed #0c67e6; }
+        
+        .island-delete-btn { position: absolute; top: -12px; right: -12px; background: #e60c0c; color: white; border: none; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 16px; display: none; justify-content: center; align-items: center; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .email-island.selected .island-delete-btn { display: flex; }
+        
+        .island-label { position: absolute; top: -25px; left: 0; font-size: 12px; font-weight: bold; color: #0c67e6; background: rgba(12, 103, 230, 0.1); padding: 2px 8px; border-radius: 4px; display: none; }
+        .email-island.selected .island-label { display: block; }
+
+        .placeholder { display: flex; justify-content: center; align-items: center; height: 80px; border: 2px dashed #dcdfe3; color: #a0a0a0; border-radius: 5px; margin: 10px; pointer-events: none; }
+        
+        /* Clean view mode styles */
+        body.clean-mode .canvas-area { padding: 0; }
+        body.clean-mode .email-island { border: 1px solid transparent !important; box-shadow: none !important; }
+
+        /* Block Elements inside Island */
+        .canvas-element { padding: 10px; margin-bottom: 10px; cursor: pointer; position: relative; border: 1px solid transparent; transition: border-color 0.2s, opacity 0.2s; }
+        .canvas-element:hover { border: 1px dashed #0c67e6; }
+        .canvas-element.selected { border: 1px solid #0c67e6; background-color: rgba(12,103,230,0.02); }
+        .canvas-element.dragging { opacity: 0.5; border: 1px dashed #a0a0a0; }
+        .canvas-element .delete-btn { position: absolute; top: -10px; right: -10px; background: #e60c0c; color: white; border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-weight: bold; font-size: 14px; display: none; justify-content: center; align-items: center; z-index: 10; }
+        .canvas-element.selected .delete-btn { display: flex; }
+
+        /* Specific Element Styles */
+        .canvas-element[data-type="image"] .content { display: flex; justify-content: center; align-items: center; width: 100%; height: auto; min-height: 120px; background-color: #f0f0f0; border: 1px solid #ccc; color: #666; font-size: 1rem; font-weight: bold; }
+        .canvas-element[data-type="image"] .content img { width: 100%; height: auto; display: block; }
+        .canvas-element[data-type="button"] .content { display: inline-block; text-decoration: none; transition: all 0.2s; box-sizing: border-box; }
+        .canvas-element[data-type="separator"] .content { height: 0; border-bottom-width: 2px; transition: border-style 0.2s; }
+        
+        /* Columns styles */
+        .canvas-element[data-type="columns"] > .content { display: flex; gap: 10px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 4px; }
+        .column-dropzone { flex: 1; min-height: 80px; padding: 5px; border: 2px dashed #e0e0e0; border-radius: 4px; transition: background-color 0.2s; display: flex; flex-direction: column; }
+        .column-dropzone.drag-over { background-color: #e6f7ff; border-color: #0c67e6; }
+
+        /* --- Properties Panel (Right) --- */
+        .properties-panel { width: 320px; padding: 1.5rem; background-color: #ffffff; border-left: 1px solid #dcdfe3; overflow-y: auto; flex-shrink: 0; }
+        .properties-panel h2 { margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid #e0e0e0; padding-bottom: 0.5rem; }
+        .prop-group { margin-bottom: 1.2rem; }
+        .prop-group label { display: block; margin-bottom: 0.4rem; font-weight: 500; font-size: 0.85rem; color: #444; }
+        .prop-group input, .prop-group textarea, .prop-group select { width: 100%; padding: 0.5rem; border: 1px solid #dcdfe3; border-radius: 4px; box-sizing: border-box; font-size: 0.9rem; }
+        .prop-group input[type="range"] { padding: 0; }
+        .prop-group textarea { min-height: 80px; resize: vertical; }
+        .prop-row { display: flex; gap: 10px; }
+        .prop-row > div { flex: 1; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 1.5rem 0; }
+
+        .add-island-wrapper { margin-top: 20px; padding: 20px; text-align: center; width: 100%; }
+        #add-island-btn { padding: 10px 20px; font-size: 1rem; background-color: #ffffff; border: 2px dashed #0c67e6; color: #0c67e6; font-weight: bold; cursor: pointer; border-radius: 8px; transition: 0.2s; }
+        #add-island-btn:hover { background-color: #f4f8ff; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Editor de Mailings</h1>
+        <div class="header-controls">
+            <div class="control-group">
+                <label for="width-slider">Ancho Gral:</label>
+                <input type="range" id="width-slider" min="500" max="800" step="10" value="600">
+                <span id="width-value">600px</span>
+            </div>
+            <div class="control-group">
+                <label for="bg-color-picker">Fondo Exterior:</label>
+                <input type="color" id="bg-color-picker" value="#f0f2f5">
+            </div>
+            <button class="style-button" id="import-html-btn">Importar HTML</button>
+            <input type="file" id="html-importer" accept=".html" style="display: none;">
+            <button class="style-button" id="clean-bg-btn">Vista Previa</button>
+            <button class="export-button" id="export-html">Exportar HTML</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside class="blocks-panel">
+            <h2>Bloques</h2>
+            <div class="block" draggable="true" data-type="text">Texto</div>
+            <div class="block" draggable="true" data-type="image">Imagen</div>
+            <div class="block" draggable="true" data-type="button">Botón</div>
+            <div class="block" draggable="true" data-type="separator">Separador</div>
+            <div class="block" draggable="true" data-type="columns">Columnas</div>
+        </aside>
+
+        <main class="canvas-area" id="canvas-area">
+            <div id="email-wrapper">
+                <!-- Islands will be injected here -->
+            </div>
+            <div class="add-island-wrapper">
+                <button id="add-island-btn">+ Añadir Nuevo Contenedor (Isla)</button>
+            </div>
+        </main>
+
+        <aside class="properties-panel" id="properties-panel">
+            <h2>Propiedades</h2>
+            <div id="properties-content">
+                <p style="color:#777; font-size:0.9rem;">Selecciona una <b>Isla</b> o un <b>Elemento</b> para editar sus propiedades.</p>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const emailWrapper = document.getElementById('email-wrapper');
+            const canvasArea = document.getElementById('canvas-area');
+            const blocks = document.querySelectorAll('.block');
+            const propertiesPanel = document.getElementById('properties-content');
+            
+            // UI Controls
+            const cleanBgBtn = document.getElementById('clean-bg-btn');
+            const widthSlider = document.getElementById('width-slider');
+            const widthValue = document.getElementById('width-value');
+            const addIslandBtn = document.getElementById('add-island-btn');
+            const importBtn = document.getElementById('import-html-btn');
+            const importInput = document.getElementById('html-importer');
+            const bgColorPicker = document.getElementById('bg-color-picker');
+            
+            let selectedElement = null; // Can be an Island or a Canvas Element
+
+            // --- Initialization ---
+            createIsland(); // Create default island on load
+
+            // --- Global UI Listeners ---
+            cleanBgBtn.addEventListener('click', () => {
+                document.body.classList.toggle('clean-mode');
+                cleanBgBtn.textContent = document.body.classList.contains('clean-mode') ? 'Modo Editor' : 'Vista Previa';
+            });
+            
+            widthSlider.addEventListener('input', (e) => {
+                const newWidth = e.target.value;
+                widthValue.textContent = `${newWidth}px`;
+                document.querySelectorAll('.email-island').forEach(island => {
+                    island.style.maxWidth = `${newWidth}px`;
+                });
+            });
+
+            bgColorPicker.addEventListener('input', e => {
+                canvasArea.style.backgroundColor = e.target.value;
+            });
+            
+            addIslandBtn.addEventListener('click', () => createIsland());
+            
+            importBtn.addEventListener('click', () => importInput.click());
+            importInput.addEventListener('change', handleHtmlImport);
+
+            // --- Drag Source Logic ---
+            blocks.forEach(block => {
+                block.addEventListener('dragstart', e => {
+                    e.dataTransfer.setData('text/plain', block.dataset.type);
+                });
+            });
+
+            // --- Island Creation & Logic ---
+            function createIsland(config = {}) {
+                const island = document.createElement('div');
+                island.className = 'email-island';
+                island.dataset.type = 'island';
+                island.dataset.bgColor = config.bgColor || '#ffffff';
+                island.dataset.borderRadius = config.borderRadius || '0';
+                island.dataset.padding = config.padding || '20';
+                island.dataset.marginBottom = config.marginBottom || '15';
+                
+                // Apply Styles
+                island.style.maxWidth = `${widthSlider.value}px`;
+                island.style.width = '100%';
+                island.style.backgroundColor = island.dataset.bgColor;
+                island.style.borderRadius = `${island.dataset.borderRadius}px`;
+                island.style.padding = `${island.dataset.padding}px`;
+                island.style.marginBottom = `${island.dataset.marginBottom}px`;
+
+                island.innerHTML = `
+                    <span class="island-label">Contenedor Principal</span>
+                    <button class="island-delete-btn" title="Eliminar Isla">&times;</button>
+                    <div class="island-content"></div>
+                `;
+
+                if (!config.elements || config.elements.length === 0) {
+                    island.querySelector('.island-content').innerHTML = '<div class="placeholder">Arrastra un bloque aquí</div>';
+                }
+
+                // Delete Logic
+                island.querySelector('.island-delete-btn').addEventListener('click', e => {
+                    e.stopPropagation();
+                    island.remove();
+                    clearPropertiesPanel();
+                    if (emailWrapper.children.length === 0) createIsland(); // always keep at least one
+                });
+
+                setupDropzone(island, island.querySelector('.island-content'));
+                emailWrapper.appendChild(island);
+
+                // Populate elements if importing
+                if (config.elements) {
+                    const contentZone = island.querySelector('.island-content');
+                    contentZone.innerHTML = '';
+                    config.elements.forEach(elConf => createElement(elConf, contentZone));
+                }
+            }
+
+            function setupDropzone(element, innerContainer) {
+                element.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const dragging = document.querySelector('.canvas-element.dragging');
+                    if (!dragging) return;
+                    if (dragging.contains(element)) return; // prevent nesting into itself
+
+                    element.classList.add('drag-over');
+                    const afterElement = getDragAfterElement(innerContainer, e.clientY);
+                    
+                    if (afterElement) {
+                        innerContainer.insertBefore(dragging, afterElement);
+                    } else {
+                        innerContainer.appendChild(dragging);
+                    }
+                });
+
+                element.addEventListener('dragleave', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    element.classList.remove('drag-over');
+                });
+
+                element.addEventListener('drop', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    element.classList.remove('drag-over');
+                    
+                    if (document.querySelector('.canvas-element.dragging')) return;
+                    
+                    const type = e.dataTransfer.getData('text/plain');
+                    if (!type) return;
+                    
+                    const placeholder = innerContainer.querySelector('.placeholder');
+                    if (placeholder) placeholder.remove();
+                    
+                    createElement({type: type}, innerContainer);
+                });
+            }
+
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll(':scope > .canvas-element:not(.dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset, element: child };
+                    }
+                    return closest;
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            // --- Element Creation ---
+            function createElement(config, parentContainer) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'canvas-element';
+                wrapper.dataset.type = config.type;
+                wrapper.draggable = true;
+                wrapper.dataset.linkHref = config.linkHref || '';
+                wrapper.dataset.align = config.align || (config.type === 'button' || config.type === 'image' ? 'center' : 'left');
+                wrapper.style.textAlign = wrapper.dataset.align;
+
+                wrapper.dataset.marginTop = config.marginTop || '15';
+                wrapper.dataset.marginBottom = config.marginBottom || '15';
+                wrapper.style.paddingTop = `${wrapper.dataset.marginTop}px`;
+                wrapper.style.paddingBottom = `${wrapper.dataset.marginBottom}px`;
+                
+                wrapper.addEventListener('dragstart', e => { e.stopPropagation(); setTimeout(() => wrapper.classList.add('dragging'), 0); });
+                wrapper.addEventListener('dragend', e => { e.stopPropagation(); wrapper.classList.remove('dragging'); checkPlaceholders(); });
+                
+                const content = document.createElement('div');
+                content.className = 'content';
+
+                switch (config.type) {
+                    case 'text':
+                        content.innerHTML = config.innerHTML || '<p>Añade tu texto aquí...</p>';
+                        wrapper.dataset.lineHeight = config.lineHeight || '1.5';
+                        content.style.lineHeight = wrapper.dataset.lineHeight;
+                        break;
+                    case 'image':
+                        const img = document.createElement('img');
+                        img.src = config.src || 'https://placehold.co/600x250/EEE/31343C?text=Imagen';
+                        content.innerHTML = '';
+                        content.appendChild(img);
+                        wrapper.dataset.src = img.src;
+                        wrapper.dataset.alt = config.alt || 'Imagen descriptiva';
+                        wrapper.dataset.width = config.width || '100';
+                        img.style.width = `${wrapper.dataset.width}%`;
+                        break;
+                    case 'button':
+                        content.textContent = config.text || 'Haz clic aquí';
+                        wrapper.dataset.href = config.href || '#';
+                        wrapper.dataset.backgroundColor = config.backgroundColor || '#0c67e6';
+                        wrapper.dataset.textColor = config.textColor || '#ffffff';
+                        wrapper.dataset.fontSize = config.fontSize || '16';
+                        wrapper.dataset.fontWeight = config.fontWeight || '600';
+                        wrapper.dataset.borderRadius = config.borderRadius || '6';
+                        wrapper.dataset.paddingV = config.paddingV || '14';
+                        wrapper.dataset.paddingH = config.paddingH || '30';
+                        wrapper.dataset.fullWidth = config.fullWidth || 'false';
+
+                        content.style.backgroundColor = wrapper.dataset.backgroundColor;
+                        content.style.color = wrapper.dataset.textColor;
+                        content.style.fontSize = `${wrapper.dataset.fontSize}px`;
+                        content.style.fontWeight = wrapper.dataset.fontWeight;
+                        content.style.borderRadius = `${wrapper.dataset.borderRadius}px`;
+                        content.style.padding = `${wrapper.dataset.paddingV}px ${wrapper.dataset.paddingH}px`;
+                        if (wrapper.dataset.fullWidth === 'true') {
+                            content.style.display = 'block';
+                            content.style.width = '100%';
+                        }
+                        break;
+                    case 'separator':
+                        wrapper.dataset.color = config.color || '#cccccc';
+                        wrapper.dataset.borderStyle = config.borderStyle || 'solid';
+                        wrapper.dataset.paddingTop = config.paddingTop || '10';
+                        wrapper.dataset.paddingBottom = config.paddingBottom || '10';
+                        content.style.borderBottomStyle = wrapper.dataset.borderStyle;
+                        content.style.borderBottomColor = wrapper.dataset.color;
+                        content.style.paddingTop = `${wrapper.dataset.paddingTop}px`;
+                        content.style.paddingBottom = `${wrapper.dataset.paddingBottom}px`;
+                        break;
+                    case 'columns':
+                        wrapper.dataset.columns = config.columns || '2';
+                        createColumns(content, parseInt(wrapper.dataset.columns, 10), config.children);
+                        break;
+                }
+                
+                wrapper.appendChild(content);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    wrapper.remove();
+                    clearPropertiesPanel();
+                    checkPlaceholders();
+                });
+                wrapper.appendChild(deleteBtn);
+
+                parentContainer.appendChild(wrapper);
+            }
+
+            function createColumns(container, count, childrenConfig = []) {
+                container.innerHTML = '';
+                for (let i = 0; i < count; i++) {
+                    const col = document.createElement('div');
+                    col.className = 'column-dropzone';
+                    
+                    if(childrenConfig[i] && childrenConfig[i].length > 0) {
+                        childrenConfig[i].forEach(childConf => createElement(childConf, col));
+                    } else {
+                        col.innerHTML = '<div class="placeholder" style="height: 40px;">Columna</div>';
+                    }
+                    
+                    setupDropzone(col, col); // Add D&D capability to the column
+                    container.appendChild(col);
+                }
+            }
+            
+            function checkPlaceholders() {
+                document.querySelectorAll('.island-content, .column-dropzone').forEach(zone => {
+                    const elements = zone.querySelectorAll(':scope > .canvas-element');
+                    const hasPlaceholder = zone.querySelector('.placeholder');
+                    
+                    if (elements.length === 0 && !hasPlaceholder) {
+                        const txt = zone.classList.contains('column-dropzone') ? 'Columna' : 'Arrastra un bloque aquí';
+                        const h = zone.classList.contains('column-dropzone') ? '40px' : '80px';
+                        zone.innerHTML = `<div class="placeholder" style="height: ${h};">${txt}</div>`;
+                    } else if (elements.length > 0 && hasPlaceholder) {
+                        hasPlaceholder.remove();
+                    }
+                });
+            }
+
+            // --- Selection & Properties Engine ---
+            document.body.addEventListener('click', e => {
+                const targetElement = e.target.closest('.canvas-element');
+                const targetIsland = e.target.closest('.email-island');
+
+                if (targetElement) {
+                    selectElement(targetElement);
+                    e.stopPropagation();
+                } else if (targetIsland) {
+                    selectElement(targetIsland);
+                    e.stopPropagation();
+                } else if (!e.target.closest('.properties-panel') && !e.target.closest('.blocks-panel') && !e.target.closest('header')) { 
+                    clearPropertiesPanel(); 
+                }
+            });
+
+            function selectElement(element) {
+                if (selectedElement) selectedElement.classList.remove('selected');
+                selectedElement = element;
+                selectedElement.classList.add('selected');
+                updatePropertiesPanel();
+            }
+            
+            function clearPropertiesPanel() {
+                if(selectedElement) selectedElement.classList.remove('selected');
+                selectedElement = null;
+                propertiesPanel.innerHTML = '<p style="color:#777; font-size:0.9rem;">Selecciona una <b>Isla</b> o un <b>Elemento</b> para editar sus propiedades.</p>';
+            }
+
+            function updatePropertiesPanel() {
+                if (!selectedElement) { clearPropertiesPanel(); return; }
+                const type = selectedElement.dataset.type;
+                let propsHtml = '';
+                
+                if (type === 'island') {
+                    // Properties specifically for the Container / Island
+                    propsHtml = `
+                        <h3 style="margin-top:0; font-size: 1rem; color: #0c67e6;">Propiedades de Contenedor</h3>
+                        <div class="prop-group">
+                            <label for="isl-bg-color">Color de Fondo</label>
+                            <input type="color" id="isl-bg-color" value="${selectedElement.dataset.bgColor}">
+                        </div>
+                        <div class="prop-group">
+                            <label for="isl-radius">Bordes Redondeados: <span id="isl-rad-val">${selectedElement.dataset.borderRadius}px</span></label>
+                            <input type="range" id="isl-radius" min="0" max="100" value="${selectedElement.dataset.borderRadius}">
+                        </div>
+                        <div class="prop-row">
+                            <div class="prop-group">
+                                <label for="isl-padding">Padding Interior (px)</label>
+                                <input type="number" id="isl-padding" min="0" value="${selectedElement.dataset.padding}">
+                            </div>
+                            <div class="prop-group">
+                                <label for="isl-margin-bottom">Separación Inf. (px)</label>
+                                <input type="number" id="isl-margin-bottom" min="0" value="${selectedElement.dataset.marginBottom}">
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Properties for regular elements
+                    switch (type) {
+                        case 'text':
+                            propsHtml = `
+                                <div class="prop-group"><label for="text-line-height">Interlineado</label><input type="number" id="text-line-height" step="0.1" min="1" value="${selectedElement.dataset.lineHeight}"></div>
+                                <div class="prop-group"><label for="text-content">Contenido HTML</label><textarea id="text-content">${selectedElement.querySelector('.content').innerHTML}</textarea></div>
+                            `;
+                            break;
+                        case 'image':
+                            propsHtml = `
+                                <div class="prop-group"><label for="img-width">Ancho: <span id="img-width-value">${selectedElement.dataset.width}%</span></label><input type="range" id="img-width" min="10" max="100" value="${selectedElement.dataset.width}"></div>
+                                <div class="prop-group"><label for="img-src">URL de la Imagen</label><input type="url" id="img-src" value="${selectedElement.dataset.src}"></div>
+                                <div class="prop-group"><label for="img-alt">Texto Alternativo</label><input type="text" id="img-alt" value="${selectedElement.dataset.alt}"></div>
+                            `;
+                            break;
+                        case 'button':
+                            propsHtml = `
+                                <div class="prop-group"><label for="btn-text">Texto</label><input type="text" id="btn-text" value="${selectedElement.querySelector('.content').textContent}"></div>
+                                <div class="prop-group"><label for="btn-href">URL del Enlace</label><input type="url" id="btn-href" value="${selectedElement.dataset.href}"></div>
+                                <div class="prop-row">
+                                    <div class="prop-group"><label for="btn-bg-color">Fondo</label><input type="color" id="btn-bg-color" value="${selectedElement.dataset.backgroundColor}"></div>
+                                    <div class="prop-group"><label for="btn-text-color">Texto</label><input type="color" id="btn-text-color" value="${selectedElement.dataset.textColor}"></div>
+                                </div>
+                                <div class="prop-row">
+                                    <div class="prop-group"><label for="btn-font-size">Fuente (px)</label><input type="number" id="btn-font-size" value="${selectedElement.dataset.fontSize}"></div>
+                                    <div class="prop-group">
+                                        <label for="btn-font-weight">Grosor</label>
+                                        <select id="btn-font-weight">
+                                            <option value="400" ${selectedElement.dataset.fontWeight === '400' ? 'selected' : ''}>Normal</option>
+                                            <option value="600" ${selectedElement.dataset.fontWeight === '600' ? 'selected' : ''}>Semi-Negrita</option>
+                                            <option value="700" ${selectedElement.dataset.fontWeight === '700' ? 'selected' : ''}>Negrita</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="prop-group">
+                                    <label for="btn-radius">Bordes Redondeados: <span id="btn-radius-val">${selectedElement.dataset.borderRadius}px</span></label>
+                                    <input type="range" id="btn-radius" min="0" max="50" value="${selectedElement.dataset.borderRadius}">
+                                </div>
+                                <div class="prop-row">
+                                    <div class="prop-group"><label for="btn-padding-v">Espacio V (px)</label><input type="number" id="btn-padding-v" value="${selectedElement.dataset.paddingV}"></div>
+                                    <div class="prop-group"><label for="btn-padding-h">Espacio H (px)</label><input type="number" id="btn-padding-h" value="${selectedElement.dataset.paddingH}"></div>
+                                </div>
+                                <div class="prop-group">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" id="btn-full-width" ${selectedElement.dataset.fullWidth === 'true' ? 'checked' : ''} style="width: auto;"> Ancho completo
+                                    </label>
+                                </div>
+                            `;
+                            break;
+                        case 'separator':
+                            propsHtml = `
+                                <div class="prop-group">
+                                    <label for="sep-style">Estilo de Línea</label>
+                                    <select id="sep-style">
+                                        <option value="solid" ${selectedElement.dataset.borderStyle === 'solid' ? 'selected' : ''}>Sólida</option>
+                                        <option value="dotted" ${selectedElement.dataset.borderStyle === 'dotted' ? 'selected' : ''}>Punteada</option>
+                                        <option value="dashed" ${selectedElement.dataset.borderStyle === 'dashed' ? 'selected' : ''}>Rayada</option>
+                                        <option value="none" ${selectedElement.dataset.borderStyle === 'none' ? 'selected' : ''}>Espacio Vacío</option>
+                                    </select>
+                                </div>
+                                <div class="prop-group" id="sep-color-group"><label for="sep-color">Color</label><input type="color" id="sep-color" value="${selectedElement.dataset.color}"></div>
+                            `;
+                            break;
+                        case 'columns':
+                            propsHtml = `
+                                <div class="prop-group">
+                                    <label for="col-count">Número de Columnas</label>
+                                    <select id="col-count">
+                                        <option value="2" ${selectedElement.dataset.columns === '2' ? 'selected' : ''}>2</option>
+                                        <option value="3" ${selectedElement.dataset.columns === '3' ? 'selected' : ''}>3</option>
+                                        <option value="4" ${selectedElement.dataset.columns === '4' ? 'selected' : ''}>4</option>
+                                    </select>
+                                </div>
+                            `;
+                            break;
+                    }
+                    
+                    if (['text', 'image', 'button'].includes(type)) {
+                        propsHtml = `
+                            <div class="prop-group">
+                                <label for="block-align">Alineación</label>
+                                <select id="block-align">
+                                    <option value="left" ${selectedElement.dataset.align === 'left' ? 'selected' : ''}>Izquierda</option>
+                                    <option value="center" ${selectedElement.dataset.align === 'center' ? 'selected' : ''}>Centro</option>
+                                    <option value="right" ${selectedElement.dataset.align === 'right' ? 'selected' : ''}>Derecha</option>
+                                </select>
+                            </div>
+                        ` + propsHtml;
+                    }
+
+                    propsHtml += `
+                        <hr>
+                        <div class="prop-row">
+                            <div class="prop-group"><label for="margin-top">Margen Sup. (px)</label><input type="number" id="margin-top" min="0" value="${selectedElement.dataset.marginTop}"></div>
+                            <div class="prop-group"><label for="margin-bottom">Margen Inf. (px)</label><input type="number" id="margin-bottom" min="0" value="${selectedElement.dataset.marginBottom}"></div>
+                        </div>
+                    `;
+                    
+                    if (type !== 'button' && type !== 'columns') {
+                        propsHtml += `
+                            <div class="prop-group">
+                                <label for="link-href">Enlazar todo el bloque (URL)</label>
+                                <input type="url" id="link-href" value="${selectedElement.dataset.linkHref || ''}" placeholder="https://ejemplo.com">
+                            </div>
+                        `;
+                    }
+                }
+
+                propertiesPanel.innerHTML = propsHtml;
+                addPropertyListeners();
+            }
+
+            function addPropertyListeners() {
+                if (!selectedElement) return;
+                const type = selectedElement.dataset.type;
+
+                // Listeners for Island
+                if (type === 'island') {
+                    document.getElementById('isl-bg-color').addEventListener('input', e => {
+                        selectedElement.dataset.bgColor = e.target.value;
+                        selectedElement.style.backgroundColor = e.target.value;
+                    });
+                    document.getElementById('isl-radius').addEventListener('input', e => {
+                        selectedElement.dataset.borderRadius = e.target.value;
+                        selectedElement.style.borderRadius = `${e.target.value}px`;
+                        document.getElementById('isl-rad-val').textContent = `${e.target.value}px`;
+                    });
+                    document.getElementById('isl-padding').addEventListener('input', e => {
+                        selectedElement.dataset.padding = e.target.value;
+                        selectedElement.style.padding = `${e.target.value}px`;
+                    });
+                    document.getElementById('isl-margin-bottom').addEventListener('input', e => {
+                        selectedElement.dataset.marginBottom = e.target.value;
+                        selectedElement.style.marginBottom = `${e.target.value}px`;
+                    });
+                    return; // exit early for island
+                }
+
+                // Listeners for Canvas Elements
+                const content = selectedElement.querySelector('.content');
+                const syncDataset = (key, val, styleProp = null, unit = '') => {
+                    selectedElement.dataset[key] = val;
+                    if (styleProp) content.style[styleProp] = val + unit;
+                };
+
+                const alignSelect = document.getElementById('block-align');
+                if (alignSelect) {
+                    alignSelect.addEventListener('input', e => {
+                        selectedElement.dataset.align = e.target.value;
+                        selectedElement.style.textAlign = e.target.value;
+                    });
+                }
+
+                document.getElementById('margin-top').addEventListener('input', e => { selectedElement.dataset.marginTop = e.target.value; selectedElement.style.paddingTop = `${e.target.value}px`; });
+                document.getElementById('margin-bottom').addEventListener('input', e => { selectedElement.dataset.marginBottom = e.target.value; selectedElement.style.paddingBottom = `${e.target.value}px`; });
+
+                if (type === 'text') {
+                    document.getElementById('text-line-height').addEventListener('input', e => syncDataset('lineHeight', e.target.value, 'lineHeight'));
+                    document.getElementById('text-content').addEventListener('input', e => content.innerHTML = e.target.value);
+                }
+
+                if (type === 'image') {
+                    document.getElementById('img-width').addEventListener('input', e => { selectedElement.dataset.width = e.target.value; document.getElementById('img-width-value').textContent = `${e.target.value}%`; content.querySelector('img').style.width = `${e.target.value}%`; });
+                    document.getElementById('img-src').addEventListener('input', e => { selectedElement.dataset.src = e.target.value; content.querySelector('img').src = e.target.value; });
+                    document.getElementById('img-alt').addEventListener('input', e => selectedElement.dataset.alt = e.target.value);
+                }
+
+                if (type === 'button') {
+                    document.getElementById('btn-text').addEventListener('input', e => content.textContent = e.target.value);
+                    document.getElementById('btn-href').addEventListener('input', e => selectedElement.dataset.href = e.target.value);
+                    document.getElementById('btn-bg-color').addEventListener('input', e => syncDataset('backgroundColor', e.target.value, 'backgroundColor'));
+                    document.getElementById('btn-text-color').addEventListener('input', e => syncDataset('textColor', e.target.value, 'color'));
+                    document.getElementById('btn-font-size').addEventListener('input', e => syncDataset('fontSize', e.target.value, 'fontSize', 'px'));
+                    document.getElementById('btn-font-weight').addEventListener('change', e => syncDataset('fontWeight', e.target.value, 'fontWeight'));
+                    document.getElementById('btn-radius').addEventListener('input', e => { document.getElementById('btn-radius-val').textContent = `${e.target.value}px`; syncDataset('borderRadius', e.target.value, 'borderRadius', 'px'); });
+                    
+                    const updateBtnPadding = () => {
+                        const v = document.getElementById('btn-padding-v').value; const h = document.getElementById('btn-padding-h').value;
+                        selectedElement.dataset.paddingV = v; selectedElement.dataset.paddingH = h;
+                        content.style.padding = `${v}px ${h}px`;
+                    };
+                    document.getElementById('btn-padding-v').addEventListener('input', updateBtnPadding);
+                    document.getElementById('btn-padding-h').addEventListener('input', updateBtnPadding);
+                    
+                    document.getElementById('btn-full-width').addEventListener('change', e => {
+                        selectedElement.dataset.fullWidth = e.target.checked;
+                        if (e.target.checked) { content.style.display = 'block'; content.style.width = '100%'; } 
+                        else { content.style.display = 'inline-block'; content.style.width = 'auto'; }
+                    });
+                }
+
+                if (type === 'separator') {
+                    document.getElementById('sep-color').addEventListener('input', e => { selectedElement.dataset.color = e.target.value; content.style.borderBottomColor = e.target.value; });
+                    document.getElementById('sep-style').addEventListener('change', e => { selectedElement.dataset.borderStyle = e.target.value; content.style.borderBottomStyle = e.target.value; document.getElementById('sep-color-group').style.display = e.target.value === 'none' ? 'none' : 'block'; });
+                }
+
+                if (type === 'columns') {
+                    document.getElementById('col-count').addEventListener('change', e => {
+                        selectedElement.dataset.columns = e.target.value;
+                        createColumns(content, parseInt(e.target.value, 10));
+                    });
+                }
+
+                const linkInput = document.getElementById('link-href');
+                if(linkInput) { linkInput.addEventListener('input', e => selectedElement.dataset.linkHref = e.target.value); }
+            }
+
+            // --- HTML Export Logic ---
+            document.getElementById('export-html').addEventListener('click', () => {
+                const width = widthSlider.value;
+                const bgColor = bgColorPicker.value;
+                
+                let emailHTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mailing</title>
+    <!--[if mso]>
+    <style type="text/css">
+        table { border-collapse: collapse; }
+        .btn-table { border-collapse: separate !important; }
+        .island-table { border-collapse: separate !important; }
+    </style>
+    <![endif]-->
+    <style type="text/css">
+        /* Resets universales para Email */
+        table, td { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { border: 0; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+        p { margin: 0; padding: 0; }
+        body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+    </style>
+</head>
+<body style="margin: 0; padding: 20px 0; background-color: ${bgColor}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <center>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: ${bgColor};">
+            <tr>
+                <td align="center" valign="top">`;
+
+                // Iterar a través de las islas
+                document.querySelectorAll('.email-island').forEach(island => {
+                    const iBg = island.dataset.bgColor;
+                    const iRad = island.dataset.borderRadius;
+                    const iPad = island.dataset.padding;
+                    const iMB = island.dataset.marginBottom;
+
+                    emailHTML += `
+                    <!-- START ISLAND -->
+                    <table width="${width}" cellpadding="0" cellspacing="0" border="0" class="island-table" style="background-color: ${iBg}; max-width: ${width}px; width: 100%; border-radius: ${iRad}px; margin-bottom: ${iMB}px; overflow: hidden; border-collapse: separate;">
+                        <tr>
+                            <td style="padding: ${iPad}px;">
+                                <table width="100%" cellpadding="0" cellspacing="0" border="0">`;
+                    
+                    // Elementos dentro de la isla
+                    island.querySelectorAll(':scope .island-content > .canvas-element').forEach(el => {
+                        emailHTML += generateEmailElementHTML(el);
+                    });
+
+                    emailHTML += `
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    <!-- END ISLAND -->`;
+                });
+
+                emailHTML += `
+                </td>
+            </tr>
+        </table>
+    </center>`;
+
+                const jsonState = JSON.stringify(serializeCanvasState());
+                emailHTML += `\n    <script id="editor-state" type="application/json">${jsonState}<\/script>\n</body>\n</html>`;
+
+                const blob = new Blob([emailHTML], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'mailing_islado.html';
+                a.click();
+            });
+
+            function generateEmailElementHTML(element) {
+                const type = element.dataset.type;
+                const align = element.dataset.align || 'left';
+                const mt = element.dataset.marginTop || '15';
+                const mb = element.dataset.marginBottom || '15';
+                const linkHref = element.dataset.linkHref || '';
+
+                let innerContent = '';
+                const contentNode = element.querySelector('.content');
+
+                if (type === 'text') {
+                    innerContent = `<div style="line-height: ${element.dataset.lineHeight}; text-align: ${align}; color: #333333; font-size: 16px;">${contentNode.innerHTML}</div>`;
+                } else if (type === 'image') {
+                    const w = element.dataset.width || '100';
+                    innerContent = `<img src="${element.dataset.src}" alt="${element.dataset.alt}" width="${w}%" style="width: ${w}%; max-width: 100%; height: auto; display: block; border: 0; margin: ${align === 'center' ? '0 auto' : (align === 'right' ? '0 0 0 auto' : '0')};" />`;
+                } else if (type === 'button') {
+                    const bg = element.dataset.backgroundColor;
+                    const tc = element.dataset.textColor;
+                    const fs = element.dataset.fontSize;
+                    const fw = element.dataset.fontWeight;
+                    const br = element.dataset.borderRadius;
+                    const pv = element.dataset.paddingV;
+                    const ph = element.dataset.paddingH;
+                    const full = element.dataset.fullWidth === 'true';
+
+                    innerContent = `
+                        <table align="${align}" border="0" cellpadding="0" cellspacing="0" class="btn-table" style="border-collapse: separate; ${full ? 'width: 100%;' : ''}">
+                            <tr>
+                                <td align="center" valign="middle" bgcolor="${bg}" style="border-radius: ${br}px; background-color: ${bg};">
+                                    <a href="${element.dataset.href}" target="_blank" style="color: ${tc}; font-family: sans-serif; font-size: ${fs}px; font-weight: ${fw}; text-decoration: none; padding: ${pv}px ${ph}px; border-radius: ${br}px; display: inline-block; border: 1px solid ${bg}; ${full ? 'display: block; width: 100%; box-sizing: border-box;' : ''}">
+                                        ${contentNode.textContent}
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>`;
+                } else if (type === 'separator') {
+                    const style = element.dataset.borderStyle;
+                    const line = style === 'none' ? '' : `<div style="border-bottom: 2px ${style} ${element.dataset.color}; height: 0px; line-height: 0px; font-size: 0px;">&nbsp;</div>`;
+                    innerContent = `<div style="padding: 10px 0;">${line}</div>`;
+                } else if (type === 'columns') {
+                    const cols = element.querySelectorAll('.column-dropzone');
+                    const count = cols.length;
+                    const colWidth = Math.floor(100 / count);
+                    
+                    innerContent = `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; table-layout: fixed;"><tr>`;
+                    cols.forEach(col => {
+                        innerContent += `<td width="${colWidth}%" valign="top" style="padding: 0 10px; width: ${colWidth}%;">`;
+                        // ¡Corrección clave! Hay que envolver los hijos en una tabla dentro de este <td>
+                        innerContent += `<table width="100%" cellpadding="0" cellspacing="0" border="0">`;
+                        col.querySelectorAll(':scope > .canvas-element').forEach(cel => {
+                            innerContent += generateEmailElementHTML(cel);
+                        });
+                        innerContent += `</table>`; // Cerramos la tabla interior
+                        innerContent += `</td>`;
+                    });
+                    innerContent += `</tr></table>`;
+                }
+
+                if (linkHref && type !== 'button' && type !== 'columns') {
+                    innerContent = `<a href="${linkHref}" target="_blank" style="text-decoration: none; color: inherit;">${innerContent}</a>`;
+                }
+
+                return `<tr><td align="${align}" style="padding: ${mt}px 0 ${mb}px 0;">${innerContent}</td></tr>`;
+            }
+
+            // --- Serialize / Import ---
+            function serializeCanvasState() {
+                const config = { width: widthSlider.value, bgColor: bgColorPicker.value, islands: [] };
+                
+                const serializeContainer = (container) => {
+                    const elements = [];
+                    container.querySelectorAll(':scope > .canvas-element').forEach(el => {
+                        const data = { ...el.dataset };
+                        if (data.type === 'text') data.innerHTML = el.querySelector('.content').innerHTML;
+                        else if (data.type === 'button') data.text = el.querySelector('.content').textContent;
+                        else if (data.type === 'columns') {
+                            data.children = [];
+                            el.querySelectorAll('.column-dropzone').forEach(col => data.children.push(serializeContainer(col)));
+                        }
+                        elements.push(data);
+                    });
+                    return elements;
+                };
+
+                document.querySelectorAll('.email-island').forEach(island => {
+                    const islandData = { ...island.dataset, elements: serializeContainer(island.querySelector('.island-content')) };
+                    config.islands.push(islandData);
+                });
+
+                return config;
+            }
+
+            function handleHtmlImport(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const doc = new DOMParser().parseFromString(event.target.result, 'text/html');
+                    const scriptTag = doc.getElementById('editor-state');
+                    if (scriptTag) loadCanvasState(JSON.parse(scriptTag.textContent));
+                    else alert("Archivo no compatible.");
+                };
+                reader.readAsText(file);
+            }
+
+            function loadCanvasState(state) {
+                widthSlider.value = state.width || 600;
+                widthValue.textContent = `${widthSlider.value}px`;
+                bgColorPicker.value = state.bgColor || '#f0f2f5';
+                canvasArea.style.backgroundColor = bgColorPicker.value;
+                
+                emailWrapper.innerHTML = ''; // clear islands
+                
+                if (state.islands && state.islands.length > 0) {
+                    state.islands.forEach(islandConf => createIsland(islandConf));
+                } else if (state.elements) {
+                    // Legacy support (fallback si se importa un archivo viejo)
+                    createIsland({ elements: state.elements });
+                } else {
+                    createIsland();
+                }
+                clearPropertiesPanel();
+            }
+        });
+    </script>
+</body>
+</html>
