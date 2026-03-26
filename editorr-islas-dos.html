@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Mailings Pro - Mejorado</title>
+    <style>
+        /* --- Variables CSS --- */
+        :root {
+            --primary-color: #0c67e6;
+            --primary-hover: #0a58c4;
+            --danger-color: #e60c0c;
+            --bg-canvas: #f0f2f5;
+            --bg-white: #ffffff;
+            --border-color: #dcdfe3;
+            --text-primary: #1c1e21;
+            --text-secondary: #65676b;
+            --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 15px rgba(0,0,0,0.08);
+            --transition: 0.2s ease;
+        }
+
+        /* --- General Styles --- */
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- Header --- */
+        header {
+            background-color: var(--bg-white);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            flex-shrink: 0;
+            z-index: 100;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        header h1 { 
+            font-size: 1.5rem; 
+            margin: 0; 
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .header-controls { 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            flex-wrap: wrap; 
+        }
+        
+        .control-group { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px;
+            background: var(--bg-canvas);
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+        
+        .control-group label { 
+            font-weight: 600; 
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        
+        #width-slider { 
+            width: 120px; 
+            accent-color: var(--primary-color);
+        }
+        
+        #width-value { 
+            font-weight: 700; 
+            min-width: 50px;
+            color: var(--primary-color);
+        }
+        
+        #bg-color-picker { 
+            width: 40px; 
+            height: 32px; 
+            border: 2px solid var(--border-color); 
+            border-radius: 6px; 
+            cursor: pointer; 
+            background-color: white;
+            transition: var(--transition);
+        }
+        
+        #bg-color-picker:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .header-controls button { 
+            border: none; 
+            padding: 0.65rem 1.25rem; 
+            border-radius: 8px; 
+            font-size: 0.9rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        
+        .style-button { 
+            background-color: #e4e6eb; 
+            color: var(--text-primary); 
+        }
+        
+        .style-button:hover { 
+            background-color: #d8dbdf; 
+            transform: translateY(-1px);
+        }
+        
+        .style-button:active {
+            transform: translateY(0);
+        }
+        
+        .export-button { 
+            background-color: var(--primary-color); 
+            color: white; 
+        }
+        
+        .export-button:hover { 
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(12, 103, 230, 0.3);
+        }
+
+        /* --- Main Container --- */
+        .main-container { 
+            display: flex; 
+            flex-grow: 1; 
+            overflow: hidden; 
+        }
+        
+        /* --- Blocks Panel --- */
+        .blocks-panel { 
+            width: 260px; 
+            padding: 1.5rem; 
+            background-color: var(--bg-white); 
+            border-right: 1px solid var(--border-color); 
+            overflow-y: auto; 
+            flex-shrink: 0; 
+        }
+        
+        .blocks-panel h2 { 
+            margin-top: 0; 
+            font-size: 1.1rem; 
+            border-bottom: 2px solid var(--primary-color); 
+            padding-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+        
+        .block { 
+            padding: 1rem; 
+            margin-bottom: 0.75rem; 
+            background: linear-gradient(135deg, #f7f7f7 0%, #ffffff 100%);
+            border: 2px dashed #cccccc; 
+            border-radius: 8px; 
+            cursor: grab; 
+            text-align: center; 
+            font-weight: 600; 
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(12, 103, 230, 0.05) 0%, rgba(12, 103, 230, 0) 100%);
+            opacity: 0;
+            transition: var(--transition);
+        }
+        
+        .block:hover {
+            background: linear-gradient(135deg, #e9f3ff 0%, #f0f8ff 100%);
+            border-color: var(--primary-color);
+            transform: translateX(4px);
+        }
+        
+        .block:hover::before {
+            opacity: 1;
+        }
+        
+        .block:active { 
+            cursor: grabbing; 
+            transform: scale(0.98);
+        }
+
+        .block-icon {
+            font-size: 1.2rem;
+            margin-right: 6px;
+        }
+        
+        /* --- Canvas Area --- */
+        .canvas-area { 
+            flex-grow: 1; 
+            padding: 2rem; 
+            overflow-y: auto; 
+            background-color: var(--bg-canvas); 
+            transition: background-color 0.3s; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+            position: relative;
+        }
+        
+        #email-wrapper { 
+            display: flex; 
+            flex-direction: column; 
+            width: 100%; 
+            align-items: center;
+            position: relative;
+        }
+
+        /* --- Toolbar Flotante --- */
+        .floating-toolbar {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-white);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            padding: 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+            pointer-events: none;
+        }
+
+        .floating-toolbar.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: all;
+        }
+
+        .toolbar-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: var(--bg-canvas);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            font-size: 1.2rem;
+        }
+
+        .toolbar-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .toolbar-btn.danger:hover {
+            background: var(--danger-color);
+        }
+        
+        /* --- Island Styles --- */
+        .email-island { 
+            background-color: var(--bg-white); 
+            border: 2px solid transparent;
+            box-shadow: var(--shadow-md);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            position: relative; 
+            box-sizing: border-box; 
+            min-height: 100px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        .email-island:hover { 
+            border: 2px dashed rgba(12, 103, 230, 0.4);
+            box-shadow: 0 6px 20px rgba(12, 103, 230, 0.12);
+        }
+        
+        .email-island.selected { 
+            border: 2px solid var(--primary-color); 
+            box-shadow: 0 0 0 4px rgba(12, 103, 230, 0.1), 0 8px 24px rgba(12, 103, 230, 0.15);
+        }
+        
+        .email-island.drag-over { 
+            background-color: #f4f8ff; 
+            border: 2px dashed var(--primary-color);
+            transform: scale(1.01);
+        }
+        
+        .island-delete-btn { 
+            position: absolute; 
+            top: -14px; 
+            right: -14px; 
+            background: var(--danger-color); 
+            color: white; 
+            border: 2px solid white;
+            width: 32px; 
+            height: 32px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 18px; 
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 10; 
+            box-shadow: 0 2px 8px rgba(230, 12, 12, 0.4);
+            transition: var(--transition);
+        }
+
+        .island-delete-btn:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(230, 12, 12, 0.5);
+        }
+        
+        .email-island.selected .island-delete-btn { display: flex; }
+        
+        .island-label { 
+            position: absolute; 
+            top: -28px; 
+            left: 0; 
+            font-size: 11px; 
+            font-weight: 700; 
+            color: var(--primary-color); 
+            background: rgba(12, 103, 230, 0.12); 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            display: none;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        
+        .email-island.selected .island-label { display: block; }
+
+        .placeholder { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100px; 
+            border: 2px dashed var(--border-color); 
+            color: var(--text-secondary); 
+            border-radius: 8px; 
+            margin: 10px; 
+            pointer-events: none;
+            font-weight: 500;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(220, 223, 227, 0.1) 10px,
+                rgba(220, 223, 227, 0.1) 20px
+            );
+        }
+        
+        /* --- Clean Mode --- */
+        body.clean-mode .canvas-area { 
+            padding: 0; 
+            background-color: var(--bg-white);
+        }
+        
+        body.clean-mode .email-island { 
+            border: none !important; 
+            box-shadow: none !important; 
+            margin-bottom: 0 !important;
+        }
+
+        body.clean-mode .add-island-wrapper {
+            display: none;
+        }
+
+        body.clean-mode .floating-toolbar {
+            display: none;
+        }
+
+        /* --- Canvas Elements --- */
+        .canvas-element { 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            cursor: move; 
+            position: relative; 
+            border: 1px solid transparent; 
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+        
+        .canvas-element:hover { 
+            border: 1px dashed var(--primary-color);
+            background-color: rgba(12, 103, 230, 0.02);
+        }
+        
+        .canvas-element.selected { 
+            border: 1px solid var(--primary-color); 
+            background-color: rgba(12,103,230,0.05);
+            box-shadow: 0 0 0 3px rgba(12, 103, 230, 0.1);
+        }
+        
+        .canvas-element.dragging { 
+            opacity: 0.4; 
+            border: 2px dashed var(--primary-color);
+            transform: rotate(2deg);
+        }
+        
+        .canvas-element .delete-btn { 
+            position: absolute; 
+            top: -12px; 
+            right: -12px; 
+            background: var(--danger-color); 
+            color: white; 
+            border: 2px solid white;
+            width: 28px; 
+            height: 28px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 16px; 
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 10;
+            transition: var(--transition);
+        }
+
+        .canvas-element .delete-btn:hover {
+            transform: scale(1.15);
+            box-shadow: 0 4px 12px rgba(230, 12, 12, 0.5);
+        }
+        
+        .canvas-element.selected .delete-btn { display: flex; }
+
+        /* --- Element-specific Styles --- */
+        .canvas-element[data-type="image"] .content { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            width: 100%; 
+            height: auto; 
+            min-height: 120px; 
+            background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+            border: 1px solid #ddd; 
+            color: #999; 
+            font-size: 1rem; 
+            font-weight: bold;
+            border-radius: 4px;
+        }
+        
+        .canvas-element[data-type="image"] .content img { 
+            width: 100%; 
+            height: auto; 
+            display: block;
+            border-radius: 4px;
+        }
+        
+        .canvas-element[data-type="button"] .content { 
+            display: inline-block; 
+            text-decoration: none; 
+            transition: all 0.2s; 
+            box-sizing: border-box;
+            cursor: pointer;
+        }
+
+        .canvas-element[data-type="button"] .content:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .canvas-element[data-type="separator"] .content { 
+            height: 0; 
+            border-bottom-width: 2px; 
+            transition: border-style 0.2s; 
+        }
+        
+        /* --- Columns --- */
+        .canvas-element[data-type="columns"] > .content { 
+            display: flex; 
+            gap: 15px; 
+            padding: 15px; 
+            border: 1px solid #e0e0e0; 
+            border-radius: 8px;
+            background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%);
+        }
+        
+        .column-dropzone { 
+            flex: 1; 
+            min-height: 100px; 
+            padding: 10px; 
+            border: 2px dashed #e0e0e0; 
+            border-radius: 8px; 
+            transition: all 0.2s; 
+            display: flex; 
+            flex-direction: column;
+            background: white;
+        }
+        
+        .column-dropzone.drag-over { 
+            background-color: #e6f7ff; 
+            border-color: var(--primary-color);
+            transform: scale(1.02);
+        }
+
+        /* --- Properties Panel --- */
+        .properties-panel { 
+            width: 340px; 
+            padding: 1.5rem; 
+            background-color: var(--bg-white); 
+            border-left: 1px solid var(--border-color); 
+            overflow-y: auto; 
+            flex-shrink: 0; 
+        }
+        
+        .properties-panel h2 { 
+            margin-top: 0; 
+            font-size: 1.1rem; 
+            border-bottom: 2px solid var(--primary-color); 
+            padding-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+        
+        .prop-group { 
+            margin-bottom: 1.25rem; 
+        }
+        
+        .prop-group label { 
+            display: block; 
+            margin-bottom: 0.5rem; 
+            font-weight: 600; 
+            font-size: 0.85rem; 
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .prop-group input, 
+        .prop-group textarea, 
+        .prop-group select { 
+            width: 100%; 
+            padding: 0.65rem; 
+            border: 2px solid var(--border-color); 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-size: 0.9rem;
+            transition: var(--transition);
+            font-family: inherit;
+        }
+
+        .prop-group input:focus,
+        .prop-group textarea:focus,
+        .prop-group select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(12, 103, 230, 0.1);
+        }
+        
+        .prop-group input[type="range"] { 
+            padding: 0;
+            accent-color: var(--primary-color);
+        }
+        
+        .prop-group textarea { 
+            min-height: 100px; 
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .prop-row { 
+            display: flex; 
+            gap: 12px; 
+        }
+        
+        .prop-row > div { 
+            flex: 1; 
+        }
+        
+        hr { 
+            border: 0; 
+            border-top: 1px solid #eee; 
+            margin: 1.5rem 0; 
+        }
+
+        /* --- Add Island Button --- */
+        .add-island-wrapper { 
+            margin-top: 30px; 
+            padding: 20px; 
+            text-align: center; 
+            width: 100%; 
+        }
+        
+        #add-island-btn { 
+            padding: 14px 28px; 
+            font-size: 1rem; 
+            background-color: var(--bg-white); 
+            border: 3px dashed var(--primary-color); 
+            color: var(--primary-color); 
+            font-weight: 700; 
+            cursor: pointer; 
+            border-radius: 12px; 
+            transition: all 0.3s;
+            letter-spacing: 0.5px;
+        }
+        
+        #add-island-btn:hover { 
+            background-color: #f4f8ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(12, 103, 230, 0.2);
+        }
+
+        /* --- Undo/Redo Indicator --- */
+        .history-indicator {
+            position: fixed;
+            top: 5rem;
+            right: 2rem;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s;
+            z-index: 1001;
+            pointer-events: none;
+        }
+
+        .history-indicator.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Scroll Styles --- */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 1200px) {
+            .blocks-panel {
+                width: 220px;
+            }
+            .properties-panel {
+                width: 300px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .header-controls {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* --- Loading Indicator --- */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- History Indicator -->
+    <div class="history-indicator" id="history-indicator"></div>
+
+    <!-- Floating Toolbar -->
+    <div class="floating-toolbar" id="floating-toolbar">
+        <button class="toolbar-btn" id="undo-btn" title="Deshacer (Ctrl+Z)">↶</button>
+        <button class="toolbar-btn" id="redo-btn" title="Rehacer (Ctrl+Y)">↷</button>
+        <button class="toolbar-btn" id="duplicate-btn" title="Duplicar">⧉</button>
+        <button class="toolbar-btn danger" id="delete-toolbar-btn" title="Eliminar (Del)">🗑</button>
+    </div>
+
+    <header>
+        <h1>
+            <span style="font-size: 1.8rem;">📧</span>
+            Editor de Mailings Pro
+        </h1>
+        <div class="header-controls">
+            <div class="control-group">
+                <label for="width-slider">Ancho:</label>
+                <input type="range" id="width-slider" min="500" max="800" step="10" value="600">
+                <span id="width-value">600px</span>
+            </div>
+            <div class="control-group">
+                <label for="bg-color-picker">Fondo:</label>
+                <input type="color" id="bg-color-picker" value="#f0f2f5">
+            </div>
+            <button class="style-button" id="import-html-btn">📥 Importar</button>
+            <input type="file" id="html-importer" accept=".html" style="display: none;">
+            <button class="style-button" id="clean-bg-btn">👁️ Vista Previa</button>
+            <button class="export-button" id="export-html">💾 Exportar HTML</button>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <aside class="blocks-panel">
+            <h2>📦 Bloques</h2>
+            <div class="block" draggable="true" data-type="text">
+                <span class="block-icon">📝</span>Texto
+            </div>
+            <div class="block" draggable="true" data-type="image">
+                <span class="block-icon">🖼️</span>Imagen
+            </div>
+            <div class="block" draggable="true" data-type="button">
+                <span class="block-icon">🔘</span>Botón
+            </div>
+            <div class="block" draggable="true" data-type="separator">
+                <span class="block-icon">➖</span>Separador
+            </div>
+            <div class="block" draggable="true" data-type="columns">
+                <span class="block-icon">⚏</span>Columnas
+            </div>
+        </aside>
+
+        <main class="canvas-area" id="canvas-area">
+            <div id="email-wrapper"></div>
+            <div class="add-island-wrapper">
+                <button id="add-island-btn">➕ Añadir Nuevo Contenedor</button>
+            </div>
+        </main>
+
+        <aside class="properties-panel" id="properties-panel">
+            <h2>⚙️ Propiedades</h2>
+            <div id="properties-content">
+                <p style="color:var(--text-secondary); font-size:0.9rem; text-align: center; padding: 2rem 0;">
+                    Selecciona una <b>Isla</b> o un <b>Elemento</b> para editar sus propiedades.
+                </p>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const emailWrapper = document.getElementById('email-wrapper');
+            const canvasArea = document.getElementById('canvas-area');
+            const blocks = document.querySelectorAll('.block');
+            const propertiesPanel = document.getElementById('properties-content');
+            const floatingToolbar = document.getElementById('floating-toolbar');
+            const historyIndicator = document.getElementById('history-indicator');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            
+            // UI Controls
+            const cleanBgBtn = document.getElementById('clean-bg-btn');
+            const widthSlider = document.getElementById('width-slider');
+            const widthValue = document.getElementById('width-value');
+            const addIslandBtn = document.getElementById('add-island-btn');
+            const importBtn = document.getElementById('import-html-btn');
+            const importInput = document.getElementById('html-importer');
+            const bgColorPicker = document.getElementById('bg-color-picker');
+            
+            // Toolbar buttons
+            const undoBtn = document.getElementById('undo-btn');
+            const redoBtn = document.getElementById('redo-btn');
+            const duplicateBtn = document.getElementById('duplicate-btn');
+            const deleteToolbarBtn = document.getElementById('delete-toolbar-btn');
+            
+            let selectedElement = null;
+            let history = [];
+            let historyIndex = -1;
+            const MAX_HISTORY = 50;
+
+            // --- History Management ---
+            function saveState() {
+                const state = serializeCanvasState();
+                // Remove future states if we're not at the end
+                history = history.slice(0, historyIndex + 1);
+                history.push(JSON.stringify(state));
+                if (history.length > MAX_HISTORY) {
+                    history.shift();
+                } else {
+                    historyIndex++;
+                }
+                updateHistoryButtons();
+            }
+
+            function undo() {
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    loadCanvasState(JSON.parse(history[historyIndex]));
+                    showHistoryIndicator('Deshecho');
+                    updateHistoryButtons();
+                }
+            }
+
+            function redo() {
+                if (historyIndex < history.length - 1) {
+                    historyIndex++;
+                    loadCanvasState(JSON.parse(history[historyIndex]));
+                    showHistoryIndicator('Rehecho');
+                    updateHistoryButtons();
+                }
+            }
+
+            function updateHistoryButtons() {
+                undoBtn.disabled = historyIndex <= 0;
+                redoBtn.disabled = historyIndex >= history.length - 1;
+                undoBtn.style.opacity = undoBtn.disabled ? '0.3' : '1';
+                redoBtn.style.opacity = redoBtn.disabled ? '0.3' : '1';
+            }
+
+            function showHistoryIndicator(text) {
+                historyIndicator.textContent = text;
+                historyIndicator.classList.add('show');
+                setTimeout(() => {
+                    historyIndicator.classList.remove('show');
+                }, 1500);
+            }
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                    e.preventDefault();
+                    undo();
+                } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+                    e.preventDefault();
+                    redo();
+                } else if (e.key === 'Delete' && selectedElement && !e.target.matches('input, textarea')) {
+                    e.preventDefault();
+                    deleteSelected();
+                } else if ((e.ctrlKey || e.metaKey) && e.key === 'd' && selectedElement) {
+                    e.preventDefault();
+                    duplicateSelected();
+                }
+            });
+
+            undoBtn.addEventListener('click', undo);
+            redoBtn.addEventListener('click', redo);
+            duplicateBtn.addEventListener('click', duplicateSelected);
+            deleteToolbarBtn.addEventListener('click', deleteSelected);
+
+            function deleteSelected() {
+                if (!selectedElement) return;
+                
+                if (selectedElement.dataset.type === 'island') {
+                    selectedElement.remove();
+                    if (emailWrapper.children.length === 0) createIsland();
+                } else {
+                    selectedElement.remove();
+                    checkPlaceholders();
+                }
+                clearPropertiesPanel();
+                saveState();
+            }
+
+            function duplicateSelected() {
+                if (!selectedElement) return;
+
+                if (selectedElement.dataset.type === 'island') {
+                    // Serialize and duplicate island
+                    const islandData = {
+                        ...selectedElement.dataset,
+                        elements: serializeContainer(selectedElement.querySelector('.island-content'))
+                    };
+                    const newIsland = createIsland(islandData);
+                    selectedElement.after(newIsland);
+                } else {
+                    // Duplicate element
+                    const parentContainer = selectedElement.parentElement;
+                    const elementData = serializeElement(selectedElement);
+                    const newElement = createElement(elementData, parentContainer);
+                    selectedElement.after(newElement);
+                }
+                saveState();
+            }
+
+            function serializeElement(element) {
+                const data = { ...element.dataset };
+                if (data.type === 'text') {
+                    data.innerHTML = element.querySelector('.content').innerHTML;
+                } else if (data.type === 'button') {
+                    data.text = element.querySelector('.content').textContent;
+                } else if (data.type === 'columns') {
+                    data.children = [];
+                    element.querySelectorAll('.column-dropzone').forEach(col => {
+                        data.children.push(serializeContainer(col));
+                    });
+                }
+                return data;
+            }
+
+            // --- Initialization ---
+            createIsland();
+            saveState();
+
+            // --- Global UI Listeners ---
+            cleanBgBtn.addEventListener('click', () => {
+                document.body.classList.toggle('clean-mode');
+                cleanBgBtn.innerHTML = document.body.classList.contains('clean-mode') ? 
+                    '✏️ Modo Editor' : '👁️ Vista Previa';
+            });
+            
+            widthSlider.addEventListener('input', (e) => {
+                const newWidth = e.target.value;
+                widthValue.textContent = `${newWidth}px`;
+                document.querySelectorAll('.email-island').forEach(island => {
+                    island.style.maxWidth = `${newWidth}px`;
+                });
+            });
+
+            widthSlider.addEventListener('change', saveState);
+
+            bgColorPicker.addEventListener('input', e => {
+                canvasArea.style.backgroundColor = e.target.value;
+            });
+
+            bgColorPicker.addEventListener('change', saveState);
+            
+            addIslandBtn.addEventListener('click', () => {
+                createIsland();
+                saveState();
+            });
+            
+            importBtn.addEventListener('click', () => importInput.click());
+            importInput.addEventListener('change', handleHtmlImport);
+
+            // --- Drag Source Logic ---
+            blocks.forEach(block => {
+                block.addEventListener('dragstart', e => {
+                    e.dataTransfer.setData('text/plain', block.dataset.type);
+                });
+            });
+
+            // --- Selection updates floating toolbar ---
+            function updateFloatingToolbar() {
+                if (selectedElement) {
+                    floatingToolbar.classList.add('visible');
+                } else {
+                    floatingToolbar.classList.remove('visible');
+                }
+            }
+
+            // --- Island Creation & Logic ---
+            function createIsland(config = {}) {
+                const island = document.createElement('div');
+                island.className = 'email-island';
+                island.dataset.type = 'island';
+                island.dataset.bgColor = config.bgColor || '#ffffff';
+                island.dataset.borderRadius = config.borderRadius || '0';
+                island.dataset.padding = config.padding || '20';
+                island.dataset.marginBottom = config.marginBottom || '15';
+                
+                // Apply Styles
+                island.style.maxWidth = `${widthSlider.value}px`;
+                island.style.width = '100%';
+                island.style.backgroundColor = island.dataset.bgColor;
+                island.style.borderRadius = `${island.dataset.borderRadius}px`;
+                island.style.padding = `${island.dataset.padding}px`;
+                island.style.marginBottom = `${island.dataset.marginBottom}px`;
+
+                island.innerHTML = `
+                    <span class="island-label">Contenedor</span>
+                    <button class="island-delete-btn" title="Eliminar Isla">&times;</button>
+                    <div class="island-content"></div>
+                `;
+
+                if (!config.elements || config.elements.length === 0) {
+                    island.querySelector('.island-content').innerHTML = 
+                        '<div class="placeholder">Arrastra un bloque aquí</div>';
+                }
+
+                // Delete Logic
+                island.querySelector('.island-delete-btn').addEventListener('click', e => {
+                    e.stopPropagation();
+                    island.remove();
+                    clearPropertiesPanel();
+                    if (emailWrapper.children.length === 0) createIsland();
+                    saveState();
+                });
+
+                setupDropzone(island, island.querySelector('.island-content'));
+                emailWrapper.appendChild(island);
+
+                // Populate elements if importing
+                if (config.elements) {
+                    const contentZone = island.querySelector('.island-content');
+                    contentZone.innerHTML = '';
+                    config.elements.forEach(elConf => createElement(elConf, contentZone));
+                }
+
+                return island;
+            }
+
+            function setupDropzone(element, innerContainer) {
+                element.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const dragging = document.querySelector('.canvas-element.dragging');
+                    if (!dragging) return;
+                    if (dragging.contains(element)) return;
+
+                    element.classList.add('drag-over');
+                    const afterElement = getDragAfterElement(innerContainer, e.clientY);
+                    
+                    if (afterElement) {
+                        innerContainer.insertBefore(dragging, afterElement);
+                    } else {
+                        innerContainer.appendChild(dragging);
+                    }
+                });
+
+                element.addEventListener('dragleave', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!e.relatedTarget || !element.contains(e.relatedTarget)) {
+                        element.classList.remove('drag-over');
+                    }
+                });
+
+                element.addEventListener('drop', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    element.classList.remove('drag-over');
+                    
+                    if (document.querySelector('.canvas-element.dragging')) {
+                        saveState();
+                        return;
+                    }
+                    
+                    const type = e.dataTransfer.getData('text/plain');
+                    if (!type) return;
+                    
+                    const placeholder = innerContainer.querySelector('.placeholder');
+                    if (placeholder) placeholder.remove();
+                    
+                    createElement({type: type}, innerContainer);
+                    saveState();
+                });
+            }
+
+            function getDragAfterElement(container, y) {
+                const draggableElements = [...container.querySelectorAll(':scope > .canvas-element:not(.dragging)')];
+                return draggableElements.reduce((closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset, element: child };
+                    }
+                    return closest;
+                }, { offset: Number.NEGATIVE_INFINITY }).element;
+            }
+
+            // --- Element Creation ---
+            function createElement(config, parentContainer) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'canvas-element';
+                wrapper.dataset.type = config.type;
+                wrapper.draggable = true;
+                wrapper.dataset.linkHref = config.linkHref || '';
+                wrapper.dataset.align = config.align || (config.type === 'button' || config.type === 'image' ? 'center' : 'left');
+                wrapper.style.textAlign = wrapper.dataset.align;
+
+                wrapper.dataset.marginTop = config.marginTop || '15';
+                wrapper.dataset.marginBottom = config.marginBottom || '15';
+                wrapper.style.paddingTop = `${wrapper.dataset.marginTop}px`;
+                wrapper.style.paddingBottom = `${wrapper.dataset.marginBottom}px`;
+                
+                wrapper.addEventListener('dragstart', e => { 
+                    e.stopPropagation(); 
+                    setTimeout(() => wrapper.classList.add('dragging'), 0); 
+                });
+                wrapper.addEventListener('dragend', e => { 
+                    e.stopPropagation(); 
+                    wrapper.classList.remove('dragging'); 
+                    checkPlaceholders(); 
+                });
+                
+                const content = document.createElement('div');
+                content.className = 'content';
+
+                switch (config.type) {
+                    case 'text':
+                        content.innerHTML = config.innerHTML || '<p>Añade tu texto aquí...</p>';
+                        wrapper.dataset.lineHeight = config.lineHeight || '1.5';
+                        content.style.lineHeight = wrapper.dataset.lineHeight;
+                        break;
+                    case 'image':
+                        const img = document.createElement('img');
+                        img.src = config.src || 'https://placehold.co/600x250/EEE/31343C?text=Imagen';
+                        content.innerHTML = '';
+                        content.appendChild(img);
+                        wrapper.dataset.src = img.src;
+                        wrapper.dataset.alt = config.alt || 'Imagen descriptiva';
+                        wrapper.dataset.width = config.width || '100';
+                        img.style.width = `${wrapper.dataset.width}%`;
+                        break;
+                    case 'button':
+                        content.textContent = config.text || 'Haz clic aquí';
+                        wrapper.dataset.href = config.href || '#';
+                        wrapper.dataset.backgroundColor = config.backgroundColor || '#0c67e6';
+                        wrapper.dataset.textColor = config.textColor || '#ffffff';
+                        wrapper.dataset.fontSize = config.fontSize || '16';
+                        wrapper.dataset.fontWeight = config.fontWeight || '600';
+                        wrapper.dataset.borderRadius = config.borderRadius || '6';
+                        wrapper.dataset.paddingV = config.paddingV || '14';
+                        wrapper.dataset.paddingH = config.paddingH || '30';
+                        wrapper.dataset.fullWidth = config.fullWidth || 'false';
+
+                        content.style.backgroundColor = wrapper.dataset.backgroundColor;
+                        content.style.color = wrapper.dataset.textColor;
+                        content.style.fontSize = `${wrapper.dataset.fontSize}px`;
+                        content.style.fontWeight = wrapper.dataset.fontWeight;
+                        content.style.borderRadius = `${wrapper.dataset.borderRadius}px`;
+                        content.style.padding = `${wrapper.dataset.paddingV}px ${wrapper.dataset.paddingH}px`;
+                        if (wrapper.dataset.fullWidth === 'true') {
+                            content.style.display = 'block';
+                            content.style.width = '100%';
+                        }
+                        break;
+                    case 'separator':
+                        wrapper.dataset.color = config.color || '#cccccc';
+                        wrapper.dataset.borderStyle = config.borderStyle || 'solid';
+                        wrapper.dataset.paddingTop = config.paddingTop || '10';
+                        wrapper.dataset.paddingBottom = config.paddingBottom || '10';
+                        content.style.borderBottomStyle = wrapper.dataset.borderStyle;
+                        content.style.borderBottomColor = wrapper.dataset.color;
+                        content.style.paddingTop = `${wrapper.dataset.paddingTop}px`;
+                        content.style.paddingBottom = `${wrapper.dataset.paddingBottom}px`;
+                        break;
+                    case 'columns':
+                        wrapper.dataset.columns = config.columns || '2';
+                        createColumns(content, parseInt(wrapper.dataset.columns, 10), config.children);
+                        break;
+                }
+                
+                wrapper.appendChild(content);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    wrapper.remove();
+                    clearPropertiesPanel();
+                    checkPlaceholders();
+                    saveState();
+                });
+                wrapper.appendChild(deleteBtn);
+
+                parentContainer.appendChild(wrapper);
+                return wrapper;
+            }
+
+            function createColumns(container, count, childrenConfig = []) {
+                container.innerHTML = '';
+                for (let i = 0; i < count; i++) {
+                    const col = document.createElement('div');
+                    col.className = 'column-dropzone';
+                    
+                    if(childrenConfig[i] && childrenConfig[i].length > 0) {
+                        childrenConfig[i].forEach(childConf => createElement(childConf, col));
+                    } else {
+                        col.innerHTML = '<div class="placeholder" style="height: 60px;">Columna ' + (i + 1) + '</div>';
+                    }
+                    
+                    setupDropzone(col, col);
+                    container.appendChild(col);
+                }
+            }
+            
+            function checkPlaceholders() {
+                document.querySelectorAll('.island-content, .column-dropzone').forEach(zone => {
+                    const elements = zone.querySelectorAll(':scope > .canvas-element');
+                    const hasPlaceholder = zone.querySelector('.placeholder');
+                    
+                    if (elements.length === 0 && !hasPlaceholder) {
+                        const txt = zone.classList.contains('column-dropzone') ? 
+                            'Columna ' + ([...zone.parentElement.children].indexOf(zone) + 1) : 
+                            'Arrastra un bloque aquí';
+                        const h = zone.classList.contains('column-dropzone') ? '60px' : '100px';
+                        zone.innerHTML = `<div class="placeholder" style="height: ${h};">${txt}</div>`;
+                    } else if (elements.length > 0 && hasPlaceholder) {
+                        hasPlaceholder.remove();
+                    }
+                });
+            }
+
+            // --- Selection & Properties Engine ---
+            document.body.addEventListener('click', e => {
+                const targetElement = e.target.closest('.canvas-element');
+                const targetIsland = e.target.closest('.email-island');
+
+                if (targetElement) {
+                    selectElement(targetElement);
+                    e.stopPropagation();
+                } else if (targetIsland) {
+                    selectElement(targetIsland);
+                    e.stopPropagation();
+                } else if (!e.target.closest('.properties-panel') && 
+                           !e.target.closest('.blocks-panel') && 
+                           !e.target.closest('header') &&
+                           !e.target.closest('.floating-toolbar')) { 
+                    clearPropertiesPanel(); 
+                }
+            });
+
+            function selectElement(element) {
+                if (selectedElement) selectedElement.classList.remove('selected');
+                selectedElement = element;
+                selectedElement.classList.add('selected');
+                updatePropertiesPanel();
+                updateFloatingToolbar();
+            }
+            
+            function clearPropertiesPanel() {
+                if(selectedElement) selectedElement.classList.remove('selected');
+                selectedElement = null;
+                propertiesPanel.innerHTML = `
+                    <p style="color:var(--text-secondary); font-size:0.9rem; text-align: center; padding: 2rem 0;">
+                        Selecciona una <b>Isla</b> o un <b>Elemento</b> para editar sus propiedades.
+                    </p>`;
+                updateFloatingToolbar();
+            }
+
+            function updatePropertiesPanel() {
+                if (!selectedElement) { clearPropertiesPanel(); return; }
+                const type = selectedElement.dataset.type;
+                let propsHtml = '';
+                
+                if (type === 'island') {
+                    propsHtml = `
+                        <h3 style="margin-top:0; font-size: 1rem; color: var(--primary-color); display: flex; align-items: center; gap: 8px;">
+                            <span>📦</span> Propiedades de Contenedor
+                        </h3>
+                        <div class="prop-group">
+                            <label for="isl-bg-color">Color de Fondo</label>
+                            <input type="color" id="isl-bg-color" value="${selectedElement.dataset.bgColor}">
+                        </div>
+                        <div class="prop-group">
+                            <label for="isl-radius">Bordes Redondeados: <span id="isl-rad-val">${selectedElement.dataset.borderRadius}px</span></label>
+                            <input type="range" id="isl-radius" min="0" max="100" value="${selectedElement.dataset.borderRadius}">
+                        </div>
+                        <div class="prop-row">
+                            <div class="prop-group">
+                                <label for="isl-padding">Padding (px)</label>
+                                <input type="number" id="isl-padding" min="0" value="${selectedElement.dataset.padding}">
+                            </div>
+                            <div class="prop-group">
+                                <label for="isl-margin-bottom">Separación (px)</label>
+                                <input type="number" id="isl-margin-bottom" min="0" value="${selectedElement.dataset.marginBottom}">
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    switch (type) {
+                        case 'text':
+                            propsHtml = `
+                                <div class="prop-group">
+                                    <label for="text-line-height">Interlineado</label>
+                                    <input type="number" id="text-line-height" step="0.1" min="1" value="${selectedElement.dataset.lineHeight}">
+                                </div>
+                                <div class="prop-group">
+                                    <label for="text-content">Contenido HTML</label>
+                                    <textarea id="text-content">${selectedElement.querySelector('.content').innerHTML}</textarea>
+                                </div>
+                            `;
+                            break;
+                        case 'image':
+                            propsHtml = `
+                                <div class="prop-group">
+                                    <label for="img-width">Ancho: <span id="img-width-value">${selectedElement.dataset.width}%</span></label>
+                                    <input type="range" id="img-width" min="10" max="100" value="${selectedElement.dataset.width}">
+                                </div>
+                                <div class="prop-group">
+                                    <label for="img-src">URL de la Imagen</label>
+                                    <input type="url" id="img-src" value="${selectedElement.dataset.src}" placeholder="https://ejemplo.com/imagen.jpg">
+                                </div>
+                                <div class="prop-group">
+                                    <label for="img-alt">Texto Alternativo</label>
+                                    <input type="text" id="img-alt" value="${selectedElement.dataset.alt}" placeholder="Descripción de la imagen">
+                                </div>
+                            `;
+                            break;
+                        case 'button':
+                            propsHtml = `
+                                <div class="prop-group">
+                                    <label for="btn-text">Texto del Botón</label>
+                                    <input type="text" id="btn-text" value="${selectedElement.querySelector('.content').textContent}">
+                                </div>
+                                <div class="prop-group">
+                                    <label for="btn-href">URL del Enlace</label>
+                                    <input type="url" id="btn-href" value="${selectedElement.dataset.href}" placeholder="https://ejemplo.com">
+                                </div>
+                                <div class="prop-row">
+                                    <div class="prop-group">
+                                        <label for="btn-bg-color">Color Fondo</label>
+                                        <input type="color" id="btn-bg-color" value="${selectedElement.dataset.backgroundColor}">
+                                    </div>
+                                    <div class="prop-group">
+                                        <label for="btn-text-color">Color Texto</label>
+                                        <input type="color" id="btn-text-color" value="${selectedElement.dataset.textColor}">
+                                    </div>
+                                </div>
+                                <div class="prop-row">
+                                    <div class="prop-group">
+                                        <label for="btn-font-size">Tamaño (px)</label>
+                                        <input type="number" id="btn-font-size" value="${selectedElement.dataset.fontSize}">
+                                    </div>
+                                    <div class="prop-group">
+                                        <label for="btn-font-weight">Grosor</label>
+                                        <select id="btn-font-weight">
+                                            <option value="400" ${selectedElement.dataset.fontWeight === '400' ? 'selected' : ''}>Normal</option>
+                                            <option value="600" ${selectedElement.dataset.fontWeight === '600' ? 'selected' : ''}>Semi-Negrita</option>
+                                            <option value="700" ${selectedElement.dataset.fontWeight === '700' ? 'selected' : ''}>Negrita</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="prop-group">
+                                    <label for="btn-radius">Bordes Redondeados: <span id="btn-radius-val">${selectedElement.dataset.borderRadius}px</span></label>
+                                    <input type="range" id="btn-radius" min="0" max="50" value="${selectedElement.dataset.borderRadius}">
+                                </div>
+                                <div class="prop-row">
+                                    <div class="prop-group">
+                                        <label for="btn-padding-v">Espacio V (px)</label>
+                                        <input type="number" id="btn-padding-v" value="${selectedElement.dataset.paddingV}">
+                                    </div>
+                                    <div class="prop-group">
+                                        <label for="btn-padding-h">Espacio H (px)</label>
+                                        <input type="number" id="btn-padding-h" value="${selectedElement.dataset.paddingH}">
+                                    </div>
+                                </div>
+                                <div class="prop-group">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; letter-spacing: 0;">
+                                        <input type="checkbox" id="btn-full-width" ${selectedElement.dataset.fullWidth === 'true' ? 'checked' : ''} style="width: auto; margin: 0;"> Ancho completo
+                                    </label>
+                                </div>
+                            `;
+                            break;
+                        case 'separator':
+                            propsHtml = `
+                                <div class="prop-group">
+                                    <label for="sep-style">Estilo de Línea</label>
+                                    <select id="sep-style">
+                                        <option value="solid" ${selectedElement.dataset.borderStyle === 'solid' ? 'selected' : ''}>Sólida</option>
+                                        <option value="dotted" ${selectedElement.dataset.borderStyle === 'dotted' ? 'selected' : ''}>Punteada</option>
+                                        <option value="dashed" ${selectedElement.dataset.borderStyle === 'dashed' ? 'selected' : ''}>Rayada</option>
+                                        <option value="none" ${selectedElement.dataset.borderStyle === 'none' ? 'selected' : ''}>Espacio Vacío</option>
+                                    </select>
+                                </div>
+                                <div class="prop-group" id="sep-color-group">
+                                    <label for="sep-color">Color</label>
+                                    <input type="color" id="sep-color" value="${selectedElement.dataset.color}">
+                                </div>
+                            `;
+                            break;
+                        case 'columns':
+                            propsHtml = `
+                                <div class="prop-group">
+                                    <label for="col-count">Número de Columnas</label>
+                                    <select id="col-count">
+                                        <option value="2" ${selectedElement.dataset.columns === '2' ? 'selected' : ''}>2</option>
+                                        <option value="3" ${selectedElement.dataset.columns === '3' ? 'selected' : ''}>3</option>
+                                        <option value="4" ${selectedElement.dataset.columns === '4' ? 'selected' : ''}>4</option>
+                                    </select>
+                                </div>
+                            `;
+                            break;
+                    }
+                    
+                    if (['text', 'image', 'button'].includes(type)) {
+                        propsHtml = `
+                            <div class="prop-group">
+                                <label for="block-align">Alineación</label>
+                                <select id="block-align">
+                                    <option value="left" ${selectedElement.dataset.align === 'left' ? 'selected' : ''}>⬅️ Izquierda</option>
+                                    <option value="center" ${selectedElement.dataset.align === 'center' ? 'selected' : ''}>↔️ Centro</option>
+                                    <option value="right" ${selectedElement.dataset.align === 'right' ? 'selected' : ''}>➡️ Derecha</option>
+                                </select>
+                            </div>
+                        ` + propsHtml;
+                    }
+
+                    propsHtml += `
+                        <hr>
+                        <div class="prop-row">
+                            <div class="prop-group">
+                                <label for="margin-top">Margen Sup. (px)</label>
+                                <input type="number" id="margin-top" min="0" value="${selectedElement.dataset.marginTop}">
+                            </div>
+                            <div class="prop-group">
+                                <label for="margin-bottom">Margen Inf. (px)</label>
+                                <input type="number" id="margin-bottom" min="0" value="${selectedElement.dataset.marginBottom}">
+                            </div>
+                        </div>
+                    `;
+                    
+                    if (type !== 'button' && type !== 'columns') {
+                        propsHtml += `
+                            <div class="prop-group">
+                                <label for="link-href">🔗 Enlazar Bloque (URL)</label>
+                                <input type="url" id="link-href" value="${selectedElement.dataset.linkHref || ''}" placeholder="https://ejemplo.com">
+                            </div>
+                        `;
+                    }
+                }
+
+                propertiesPanel.innerHTML = propsHtml;
+                addPropertyListeners();
+            }
+
+            function addPropertyListeners() {
+                if (!selectedElement) return;
+                const type = selectedElement.dataset.type;
+
+                if (type === 'island') {
+                    document.getElementById('isl-bg-color').addEventListener('input', e => {
+                        selectedElement.dataset.bgColor = e.target.value;
+                        selectedElement.style.backgroundColor = e.target.value;
+                    });
+                    document.getElementById('isl-bg-color').addEventListener('change', saveState);
+                    
+                    document.getElementById('isl-radius').addEventListener('input', e => {
+                        selectedElement.dataset.borderRadius = e.target.value;
+                        selectedElement.style.borderRadius = `${e.target.value}px`;
+                        document.getElementById('isl-rad-val').textContent = `${e.target.value}px`;
+                    });
+                    document.getElementById('isl-radius').addEventListener('change', saveState);
+                    
+                    document.getElementById('isl-padding').addEventListener('input', e => {
+                        selectedElement.dataset.padding = e.target.value;
+                        selectedElement.style.padding = `${e.target.value}px`;
+                    });
+                    document.getElementById('isl-padding').addEventListener('change', saveState);
+                    
+                    document.getElementById('isl-margin-bottom').addEventListener('input', e => {
+                        selectedElement.dataset.marginBottom = e.target.value;
+                        selectedElement.style.marginBottom = `${e.target.value}px`;
+                    });
+                    document.getElementById('isl-margin-bottom').addEventListener('change', saveState);
+                    return;
+                }
+
+                const content = selectedElement.querySelector('.content');
+                const syncDataset = (key, val, styleProp = null, unit = '') => {
+                    selectedElement.dataset[key] = val;
+                    if (styleProp) content.style[styleProp] = val + unit;
+                };
+
+                const alignSelect = document.getElementById('block-align');
+                if (alignSelect) {
+                    alignSelect.addEventListener('change', e => {
+                        selectedElement.dataset.align = e.target.value;
+                        selectedElement.style.textAlign = e.target.value;
+                        saveState();
+                    });
+                }
+
+                const marginTop = document.getElementById('margin-top');
+                const marginBottom = document.getElementById('margin-bottom');
+                
+                marginTop.addEventListener('input', e => { 
+                    selectedElement.dataset.marginTop = e.target.value; 
+                    selectedElement.style.paddingTop = `${e.target.value}px`; 
+                });
+                marginTop.addEventListener('change', saveState);
+                
+                marginBottom.addEventListener('input', e => { 
+                    selectedElement.dataset.marginBottom = e.target.value; 
+                    selectedElement.style.paddingBottom = `${e.target.value}px`; 
+                });
+                marginBottom.addEventListener('change', saveState);
+
+                if (type === 'text') {
+                    document.getElementById('text-line-height').addEventListener('input', e => 
+                        syncDataset('lineHeight', e.target.value, 'lineHeight'));
+                    document.getElementById('text-line-height').addEventListener('change', saveState);
+                    
+                    document.getElementById('text-content').addEventListener('input', e => 
+                        content.innerHTML = e.target.value);
+                    document.getElementById('text-content').addEventListener('change', saveState);
+                }
+
+                if (type === 'image') {
+                    const imgWidth = document.getElementById('img-width');
+                    imgWidth.addEventListener('input', e => { 
+                        selectedElement.dataset.width = e.target.value; 
+                        document.getElementById('img-width-value').textContent = `${e.target.value}%`; 
+                        content.querySelector('img').style.width = `${e.target.value}%`; 
+                    });
+                    imgWidth.addEventListener('change', saveState);
+                    
+                    document.getElementById('img-src').addEventListener('input', e => { 
+                        selectedElement.dataset.src = e.target.value; 
+                        content.querySelector('img').src = e.target.value; 
+                    });
+                    document.getElementById('img-src').addEventListener('change', saveState);
+                    
+                    document.getElementById('img-alt').addEventListener('input', e => 
+                        selectedElement.dataset.alt = e.target.value);
+                    document.getElementById('img-alt').addEventListener('change', saveState);
+                }
+
+                if (type === 'button') {
+                    document.getElementById('btn-text').addEventListener('input', e => 
+                        content.textContent = e.target.value);
+                    document.getElementById('btn-text').addEventListener('change', saveState);
+                    
+                    document.getElementById('btn-href').addEventListener('input', e => 
+                        selectedElement.dataset.href = e.target.value);
+                    document.getElementById('btn-href').addEventListener('change', saveState);
+                    
+                    document.getElementById('btn-bg-color').addEventListener('input', e => 
+                        syncDataset('backgroundColor', e.target.value, 'backgroundColor'));
+                    document.getElementById('btn-bg-color').addEventListener('change', saveState);
+                    
+                    document.getElementById('btn-text-color').addEventListener('input', e => 
+                        syncDataset('textColor', e.target.value, 'color'));
+                    document.getElementById('btn-text-color').addEventListener('change', saveState);
+                    
+                    document.getElementById('btn-font-size').addEventListener('input', e => 
+                        syncDataset('fontSize', e.target.value, 'fontSize', 'px'));
+                    document.getElementById('btn-font-size').addEventListener('change', saveState);
+                    
+                    document.getElementById('btn-font-weight').addEventListener('change', e => {
+                        syncDataset('fontWeight', e.target.value, 'fontWeight');
+                        saveState();
+                    });
+                    
+                    const btnRadius = document.getElementById('btn-radius');
+                    btnRadius.addEventListener('input', e => { 
+                        document.getElementById('btn-radius-val').textContent = `${e.target.value}px`; 
+                        syncDataset('borderRadius', e.target.value, 'borderRadius', 'px'); 
+                    });
+                    btnRadius.addEventListener('change', saveState);
+                    
+                    const updateBtnPadding = () => {
+                        const v = document.getElementById('btn-padding-v').value; 
+                        const h = document.getElementById('btn-padding-h').value;
+                        selectedElement.dataset.paddingV = v; 
+                        selectedElement.dataset.paddingH = h;
+                        content.style.padding = `${v}px ${h}px`;
+                    };
+                    document.getElementById('btn-padding-v').addEventListener('input', updateBtnPadding);
+                    document.getElementById('btn-padding-v').addEventListener('change', saveState);
+                    document.getElementById('btn-padding-h').addEventListener('input', updateBtnPadding);
+                    document.getElementById('btn-padding-h').addEventListener('change', saveState);
+                    
+                    document.getElementById('btn-full-width').addEventListener('change', e => {
+                        selectedElement.dataset.fullWidth = e.target.checked;
+                        if (e.target.checked) { 
+                            content.style.display = 'block'; 
+                            content.style.width = '100%'; 
+                        } else { 
+                            content.style.display = 'inline-block'; 
+                            content.style.width = 'auto'; 
+                        }
+                        saveState();
+                    });
+                }
+
+                if (type === 'separator') {
+                    document.getElementById('sep-color').addEventListener('input', e => { 
+                        selectedElement.dataset.color = e.target.value; 
+                        content.style.borderBottomColor = e.target.value; 
+                    });
+                    document.getElementById('sep-color').addEventListener('change', saveState);
+                    
+                    document.getElementById('sep-style').addEventListener('change', e => { 
+                        selectedElement.dataset.borderStyle = e.target.value; 
+                        content.style.borderBottomStyle = e.target.value; 
+                        const colorGroup = document.getElementById('sep-color-group');
+                        colorGroup.style.display = e.target.value === 'none' ? 'none' : 'block';
+                        saveState();
+                    });
+                }
+
+                if (type === 'columns') {
+                    document.getElementById('col-count').addEventListener('change', e => {
+                        selectedElement.dataset.columns = e.target.value;
+                        createColumns(content, parseInt(e.target.value, 10));
+                        saveState();
+                    });
+                }
+
+                const linkInput = document.getElementById('link-href');
+                if(linkInput) { 
+                    linkInput.addEventListener('input', e => 
+                        selectedElement.dataset.linkHref = e.target.value);
+                    linkInput.addEventListener('change', saveState);
+                }
+            }
+
+            // --- HTML Export Logic ---
+            document.getElementById('export-html').addEventListener('click', () => {
+                loadingOverlay.classList.add('active');
+                
+                setTimeout(() => {
+                    const width = widthSlider.value;
+                    const bgColor = bgColorPicker.value;
+                    
+                    let emailHTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mailing</title>
+    <!--[if mso]>
+    <style type="text/css">
+        table { border-collapse: collapse; }
+        .btn-table { border-collapse: separate !important; }
+        .island-table { border-collapse: separate !important; }
+    </style>
+    <![endif]-->
+    <style type="text/css">
+        table, td { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { border: 0; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic; }
+        p { margin: 0; padding: 0; }
+        body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+    </style>
+</head>
+<body style="margin: 0; padding: 20px 0; background-color: ${bgColor}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+    <center>
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: ${bgColor};">
+            <tr>
+                <td align="center" valign="top">`;
+
+                    document.querySelectorAll('.email-island').forEach(island => {
+                        const iBg = island.dataset.bgColor;
+                        const iRad = island.dataset.borderRadius;
+                        const iPad = island.dataset.padding;
+                        const iMB = island.dataset.marginBottom;
+
+                        emailHTML += `
+                    <!-- START ISLAND -->
+                    <table width="${width}" cellpadding="0" cellspacing="0" border="0" class="island-table" style="background-color: ${iBg}; max-width: ${width}px; width: 100%; border-radius: ${iRad}px; margin-bottom: ${iMB}px; overflow: hidden; border-collapse: separate;">
+                        <tr>
+                            <td style="padding: ${iPad}px;">
+                                <table width="100%" cellpadding="0" cellspacing="0" border="0">`;
+                        
+                        island.querySelectorAll(':scope .island-content > .canvas-element').forEach(el => {
+                            emailHTML += generateEmailElementHTML(el);
+                        });
+
+                        emailHTML += `
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    <!-- END ISLAND -->`;
+                    });
+
+                    emailHTML += `
+                </td>
+            </tr>
+        </table>
+    </center>`;
+
+                    const jsonState = JSON.stringify(serializeCanvasState());
+                    emailHTML += `\n    <script id="editor-state" type="application/json">${jsonState}<\/script>\n</body>\n</html>`;
+
+                    const blob = new Blob([emailHTML], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `mailing_${Date.now()}.html`;
+                    a.click();
+                    
+                    loadingOverlay.classList.remove('active');
+                    showHistoryIndicator('✓ Exportado');
+                }, 100);
+            });
+
+            function generateEmailElementHTML(element) {
+                const type = element.dataset.type;
+                const align = element.dataset.align || 'left';
+                const mt = element.dataset.marginTop || '15';
+                const mb = element.dataset.marginBottom || '15';
+                const linkHref = element.dataset.linkHref || '';
+
+                let innerContent = '';
+                const contentNode = element.querySelector('.content');
+
+                if (type === 'text') {
+                    innerContent = `<div style="line-height: ${element.dataset.lineHeight}; text-align: ${align}; color: #333333; font-size: 16px;">${contentNode.innerHTML}</div>`;
+                } else if (type === 'image') {
+                    const w = element.dataset.width || '100';
+                    innerContent = `<img src="${element.dataset.src}" alt="${element.dataset.alt}" width="${w}%" style="width: ${w}%; max-width: 100%; height: auto; display: block; border: 0; margin: ${align === 'center' ? '0 auto' : (align === 'right' ? '0 0 0 auto' : '0')};" />`;
+                } else if (type === 'button') {
+                    const bg = element.dataset.backgroundColor;
+                    const tc = element.dataset.textColor;
+                    const fs = element.dataset.fontSize;
+                    const fw = element.dataset.fontWeight;
+                    const br = element.dataset.borderRadius;
+                    const pv = element.dataset.paddingV;
+                    const ph = element.dataset.paddingH;
+                    const full = element.dataset.fullWidth === 'true';
+
+                    innerContent = `
+                        <table align="${align}" border="0" cellpadding="0" cellspacing="0" class="btn-table" style="border-collapse: separate; ${full ? 'width: 100%;' : ''}">
+                            <tr>
+                                <td align="center" valign="middle" bgcolor="${bg}" style="border-radius: ${br}px; background-color: ${bg};">
+                                    <a href="${element.dataset.href}" target="_blank" style="color: ${tc}; font-family: sans-serif; font-size: ${fs}px; font-weight: ${fw}; text-decoration: none; padding: ${pv}px ${ph}px; border-radius: ${br}px; display: inline-block; border: 1px solid ${bg}; ${full ? 'display: block; width: 100%; box-sizing: border-box;' : ''}">
+                                        ${contentNode.textContent}
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>`;
+                } else if (type === 'separator') {
+                    const style = element.dataset.borderStyle;
+                    const line = style === 'none' ? '' : `<div style="border-bottom: 2px ${style} ${element.dataset.color}; height: 0px; line-height: 0px; font-size: 0px;">&nbsp;</div>`;
+                    innerContent = `<div style="padding: 10px 0;">${line}</div>`;
+                } else if (type === 'columns') {
+                    const cols = element.querySelectorAll('.column-dropzone');
+                    const count = cols.length;
+                    const colWidth = Math.floor(100 / count);
+                    
+                    innerContent = `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; table-layout: fixed;"><tr>`;
+                    cols.forEach(col => {
+                        innerContent += `<td width="${colWidth}%" valign="top" style="padding: 0 10px; width: ${colWidth}%;">`;
+                        innerContent += `<table width="100%" cellpadding="0" cellspacing="0" border="0">`;
+                        col.querySelectorAll(':scope > .canvas-element').forEach(cel => {
+                            innerContent += generateEmailElementHTML(cel);
+                        });
+                        innerContent += `</table>`;
+                        innerContent += `</td>`;
+                    });
+                    innerContent += `</tr></table>`;
+                }
+
+                if (linkHref && type !== 'button' && type !== 'columns') {
+                    innerContent = `<a href="${linkHref}" target="_blank" style="text-decoration: none; color: inherit;">${innerContent}</a>`;
+                }
+
+                return `<tr><td align="${align}" style="padding: ${mt}px 0 ${mb}px 0;">${innerContent}</td></tr>`;
+            }
+
+            // --- Serialize / Import ---
+            function serializeCanvasState() {
+                const config = { 
+                    width: widthSlider.value, 
+                    bgColor: bgColorPicker.value, 
+                    islands: [] 
+                };
+                
+                document.querySelectorAll('.email-island').forEach(island => {
+                    const islandData = { 
+                        ...island.dataset, 
+                        elements: serializeContainer(island.querySelector('.island-content')) 
+                    };
+                    config.islands.push(islandData);
+                });
+
+                return config;
+            }
+
+            function serializeContainer(container) {
+                const elements = [];
+                container.querySelectorAll(':scope > .canvas-element').forEach(el => {
+                    elements.push(serializeElement(el));
+                });
+                return elements;
+            }
+
+            function handleHtmlImport(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                loadingOverlay.classList.add('active');
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const doc = new DOMParser().parseFromString(event.target.result, 'text/html');
+                    const scriptTag = doc.getElementById('editor-state');
+                    if (scriptTag) {
+                        loadCanvasState(JSON.parse(scriptTag.textContent));
+                        showHistoryIndicator('✓ Importado');
+                    } else {
+                        alert("Archivo no compatible. Asegúrate de importar un archivo exportado desde este editor.");
+                    }
+                    loadingOverlay.classList.remove('active');
+                };
+                reader.readAsText(file);
+            }
+
+            function loadCanvasState(state) {
+                widthSlider.value = state.width || 600;
+                widthValue.textContent = `${widthSlider.value}px`;
+                bgColorPicker.value = state.bgColor || '#f0f2f5';
+                canvasArea.style.backgroundColor = bgColorPicker.value;
+                
+                emailWrapper.innerHTML = '';
+                
+                if (state.islands && state.islands.length > 0) {
+                    state.islands.forEach(islandConf => createIsland(islandConf));
+                } else if (state.elements) {
+                    createIsland({ elements: state.elements });
+                } else {
+                    createIsland();
+                }
+                
+                clearPropertiesPanel();
+                saveState();
+            }
+        });
+    </script>
+</body>
+</html>
